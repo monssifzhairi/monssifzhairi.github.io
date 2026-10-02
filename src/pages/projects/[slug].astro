@@ -310,11 +310,17 @@ const howKnown = project.how.length > 0;
     font-size: clamp(3.5rem, 17vw, 13rem);
     line-height: 0.9;
     letter-spacing: -0.02em;
-    color: transparent;
-    -webkit-text-stroke: 1px var(--line-strong);
+    color: var(--line-strong);
     text-align: center;
     padding-inline: 1rem;
     user-select: none;
+  }
+
+  @supports (-webkit-text-stroke: 1px #fff) {
+    .hero-figure__text {
+      color: transparent;
+      -webkit-text-stroke: 1px var(--line-strong);
+    }
   }
 
   .feature-list {

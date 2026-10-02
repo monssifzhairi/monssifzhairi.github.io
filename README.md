@@ -21,10 +21,11 @@ npm run build          # -> dist/
 npm run preview        # serve dist/
 
 npm run check          # astro check (types)
-npm run verify         # static SEO/a11y/content audit of dist/
-npm run test:behaviour # focus-trap / reduced-motion / ticker tests in a real DOM
+npm run verify         # static SEO/a11y/content/brand-asset audit of dist/
+npm run check:css      # parse the built CSS; assert rules are reachable
+npm run test:behaviour # focus-trap / reduced-motion / ticker / pointer tests in a real DOM
 npm test               # check + build + verify + test:behaviour
-npm run og             # regenerate the OG image and PNG icons
+npm run brand          # regenerate the logo, OG image and PNG icons from source
 npm run serve:dist     # serve dist/ with GitHub Pages-like 404 behaviour
 ```
 
@@ -94,22 +95,25 @@ src/
     robots.txt.ts              generated
 
 scripts/
-  generate-og.mjs              builds og-default.jpg + PNG icons from SVG
-  verify.py                    10-section post-build audit
+  generate-brand.mjs           builds logo.png + og-default.jpg + PNG icons
+  fonts.mjs                    decompresses Oswald WOFF2 -> TTF for rendering
+  verify.py                    11-section post-build audit
+  check-css.mjs                structural CSS parse check
   test-behaviour.mjs           DOM tests for the interactive layer
   serve-dist.py                static server that mimics Pages 404 behaviour
 ```
 
 **Why Astro:** every page is delivered as complete static HTML
 (blueprint §9.1 forbids a client-rendered shell), and text pages ship almost no
-JavaScript (§15). Zero JavaScript files are emitted; the only JS is ~2.3 KB of
-inlined module code per page for the menu, ticker and reveal system.
+JavaScript (§15). Zero JavaScript files are emitted; the only JS is ~6.5 KB of
+inlined module code per page for the menu, ticker and motion system.
 
 ---
 
 ## Design tokens lifted from the previous site
 
-Read out of `monssif.xo.je/styles.css` and `script.js`, not invented:
+Read out of the previous site's `styles.css` and `script.js` (kept locally in
+`old-site-reference/`, git-ignored and never part of the build), not invented:
 
 | Token | Value |
 |---|---|
@@ -146,6 +150,49 @@ philosophy, the ticker — is carried over.
   ticker transitions are removed, and the reveal system does not opt in at all.
 - The ticker is a real, focusable **pause button** and is disabled under
   reduced motion rather than offering a control over motion that cannot happen.
+- The pointer ring, magnetic pull, scroll skew and parallax are all gated on a
+  fine pointer (`(hover: hover) and (pointer: fine)`), so touch devices and
+  keyboard users never run code they cannot see.
+
+### Interaction effects
+
+The previous site's signature interactions are rebuilt idiomatically against
+the current components rather than copied as a script. Each one is a *pure
+enhancement*: the page is complete and readable with all of them absent.
+
+| Effect | Implementation | Guard |
+|---|---|---|
+| Button wipe | `scaleY` panel on a pseudo-element, colour inverted to `#0d0d0d` | Reduced motion |
+| Editorial row wipe | White panel slides left→right, text colour inverts | Reduced motion |
+| Scroll skew + parallax | One shared `requestAnimationFrame` loop over `[data-parallax]` | Reduced motion |
+| Decoder text | Nav labels scramble on hover/focus/enter | Reduced motion |
+| Magnetic controls | `data-magnetic` opt-in on `.btn` only, so the stretched row links stay intact | Reduced motion, fine pointer |
+| Pointer ring | Dot + trailing ring, `aria-hidden`, removed on leave | Reduced motion, fine pointer |
+| Scroll hint | Animated label in the hero | Reduced motion |
+
+**Accessible names cannot be disturbed.** The decoder swaps visible glyphs, so
+each label renders twice: a `.scramble-text` copy that is `aria-hidden="true"`,
+plus the untouched `.sr-only` original. A screen reader therefore announces
+"Projects" whether or not the letters are mid-scramble. This is asserted in
+`scripts/test-behaviour.mjs`.
+
+**The native pointer is never replaced.** `cursor: none` appears nowhere in the
+build. The ring is additive, so the OS cursor, focus rings and text carets all
+behave normally. This is asserted in the test suite.
+
+### Deliberately rejected patterns
+
+Some previous-site effects were **not** carried over. These are decisions, not
+oversights:
+
+| Rejected | Reason |
+|---|---|
+| Blocking preloader | Delays first paint and directly harms LCP for a purely cosmetic transition. |
+| `cursor: none` | Hides the OS pointer — an accessibility regression for a purely cosmetic effect. |
+| `mix-blend-mode: difference` on the nav | Blend modes sample whatever is behind them, so contrast against body text is unpredictable and unverifiable. |
+| 3D card tilt / spotlight | Conflicts with the full-width editorial rows and their stretched links, and breaks on coarse pointers. |
+| Forced `window.scrollTo(0, 0)` | Throws away scroll position and history on navigation. |
+| Outlined type at hover | The old grey outline dropped to **2.5:1** on the hover state; the hover colours are recomputed per background instead (§Design tokens). |
 
 ---
 
@@ -225,17 +272,79 @@ Targeting WCAG 2.2 AA.
 
 ---
 
+## Brand assets
+
+The wordmark, favicon, Apple touch icon, maskable icon and OG image are all
+generated from one source: `npm run brand`.
+
+### One mark, one source
+
+`public/favicon.svg` is the canonical monogram. The PNG icons are **rasterised
+from that file**, not re-drawn from parameters, so the vector favicon and the
+raster icons cannot drift apart. `public/logo.png` (the header wordmark) is the
+same monogram with no tile behind it, trimmed to its ink on a transparent
+background and rendered at 2× the header's display size.
+
+### Why the generator is more elaborate than it looks
+
+Every one of these assets is typographic, which means they need the real Oswald —
+and that turns out to be the hard part. Three findings shaped the design:
+
+1. **sharp cannot render SVG text in this environment.** Its bundled librsvg
+   emits a ~18×12 stub regardless of `font-size`, `font-family`, or
+   `fontconfig` — so `font-family="Oswald…"` silently became a system fallback
+   face. The previously committed icons were 152×95 of ink where Oswald measures
+   93×73, which is how the mismatch was caught.
+2. **fontkit cannot extract glyph outlines here.** It opens the font and reports
+   correct metrics, but `glyph.path.commands` comes back empty, so converting
+   text to paths was not an option.
+3. **`@fontsource` ships only WOFF2**, which renderers generally cannot read.
+
+So the pipeline is: `wawoff2` decompresses Oswald's WOFF2 to TrueType →
+`@resvg/resvg-js` renders the SVG with those fonts loaded explicitly → sharp
+handles the pixel work (resize, encode, measure).
+
+### Silent-failure guard
+
+A renderer that cannot match a font family draws **nothing** and still exits
+successfully. That is precisely how the assets ended up typographically wrong
+in the first place, so the failure is now made loud in two places:
+
+- `generate-brand.mjs` runs a **preflight** render and measures the cap height of
+  an "M". Oswald's is exactly 0.810 em; if the measurement is missing or outside
+  0.7–0.9, it aborts **before writing anything**, so a broken renderer cannot
+  overwrite correct assets.
+- `scripts/verify.py` section 12 asserts every brand file exists, is a readable
+  image of the exact expected size, is not implausibly small, that `logo.png`
+  has an alpha channel, and that every page's header references it with `alt=""`
+  and explicit `width`/`height` (so it cannot shift layout).
+
+`sharp` is still used for all pixel operations — it is only SVG *text* that
+bypasses it.
+
+---
+
 ## Performance
 
-- **Zero JavaScript files emitted.** All page JS is inlined (~2.3 KB/page) and
-  progressive-enhancement only.
+- **Zero JavaScript files emitted.** All page JS is inlined (~6.5 KB/page) and
+  progressive-enhancement only. This is deliberate, and it is load-bearing:
+  Astro inlines a script only below Vite's `assetsInlineLimit`, which defaults
+  to 4096 bytes. The interaction layer sits just under that line, so
+  `astro.config.mjs` raises the limit to `8192` explicitly. Without it, the next
+  few added bytes would silently promote the script into a render-blocking
+  `_astro/*.js` request. `npm run verify` asserts the file count stays at zero.
 - Self-hosted subsetted fonts (Inter Variable, Oswald 400/500/600) with
   `font-display: swap` and `font-range` subsetting; only latin-ish subsets are
   fetched via `unicode-range`. No Google Fonts request, no third-party origin.
 - No client framework, no Three.js, no GSAP, no scroll library.
 - Animations animate only `transform` and `opacity`; no layout thrashing.
+- Scroll, parallax and cursor effects share a **single**
+  `requestAnimationFrame` loop, and reads are batched before writes so no frame
+  thrashes layout.
 - The film texture is an inline SVG data URI — no extra request.
-- 216 KB of HTML total across all 10 pages (~20 KB/page average).
+- 269 KB of HTML total across all 10 pages (~27 KB/page average), of which ~6.5 KB
+  is inlined JS repeated per page. Gzipped over the wire this costs roughly a
+  third of that, since the same script appears on every page.
 - GitHub Pages sets its own cache headers, so Astro emits content-hashed asset
   filenames (`_astro/about.<hash>.css`) for long-lived caching.
 
@@ -247,14 +356,49 @@ after the first deploy** — see the checklist below.
 
 ## Verification
 
-`npm test` runs four gates, all currently passing:
+`npm test` runs five gates, all currently passing:
 
 ```
-astro check              0 errors, 0 warnings, 0 hints   (25 files)
-npm run build            10 pages, 2.5s
-npm run verify           ALL CHECKS PASSED                (10 sections)
-npm run test:behaviour   all 42 behaviour checks passed
+astro check              0 errors, 0 warnings, 0 hints   (27 files)
+npm run build            10 pages, 0 client JS files
+npm run verify           ALL CHECKS PASSED                (11 sections)
+npm run check:css        CSS structure OK                 (492 rules, 11 sources)
+npm run test:behaviour   all 57 behaviour checks passed
 ```
+
+### Structural CSS checking
+
+`scripts/check-css.mjs` parses every stylesheet with postcss and asserts the
+rules are actually reachable — because string-based checks cannot see this class
+of failure, and the site hit it.
+
+The reduced-motion block was once silently destroyed. A comment opener was
+clobbered during an edit, leaving orphaned prose at the top level. A CSS parser
+does not error on that: it reads the prose *plus the following `@media` prelude*
+as a single selector, finds it invalid, and discards the block and all **13 rules
+inside it**. Every text-based check passed the entire time, because the strings
+were still in the file. The practical result was that `prefers-reduced-motion`
+did nothing at all.
+
+So the check is structural, not textual:
+
+1. every stylesheet parses;
+2. no rule has a selector containing leftover prose or a stray comment end;
+3. the reduced-motion block exists and *directly contains* `.js-reveal`,
+   `.film-texture`, `.cursor-dot` and `[data-magnetic]`;
+4. outlined type (transparent fill + `-webkit-text-stroke`) sits behind an
+   `@supports` guard — text-stroke is a prefixed, non-standard property, so a
+   browser that cannot stroke would otherwise honour `color: transparent` and
+   render *nothing*. All four outlined-text rules (`.bg-text`,
+   `.ticker__group`, `.row__figure`, `.hero-figure__text`) are guarded.
+
+Point 3 matters: `walkAtRules` would still reach rules nested inside a swallowed
+block and report them as present. Only direct children are counted.
+
+Astro splits styling in two — `global.css` becomes a linked stylesheet, while
+each component's scoped `<style>` is inlined into the page HTML. Checking only
+the linked file would leave most of the CSS unverified, so the script collects
+both: **11 sources, 492 rules** rather than 1 source and 148 rules.
 
 `scripts/verify.py` audits the built output for:
 
@@ -421,7 +565,7 @@ and descriptive alt text — the page structure and SEO markup do not change.
 - [x] 404 page returns a real 404 (verified over HTTP)
 - [x] One H1 per page; no skipped heading levels
 - [x] No fixed widths that break 360px; `overflow-x: clip` guards
-- [x] Zero JavaScript files; 216 KB HTML total
+- [x] Zero JavaScript files; 269 KB HTML total
 - [ ] Core Web Vitals measured on the live site
 
 ### Content and metadata
@@ -442,7 +586,10 @@ and descriptive alt text — the page structure and SEO markup do not change.
 - [ ] Validated on the live URL with Rich Results Test
 
 ### Search Console and monitoring
-- [ ] Property verified
+- [x] File-based verification file committed
+      (`public/googledb1b084fed1c024.html`, served at
+      `/googledb1b084fed1c024.html` — confirmed 200 locally)
+- [ ] Verification confirmed accepted in the Search Console dashboard
 - [ ] Sitemap submitted; homepage indexing requested
 - [ ] Review Coverage and Core Web Vitals after 1–2 weeks, then monthly
 
@@ -451,6 +598,8 @@ and descriptive alt text — the page structure and SEO markup do not change.
 - [x] No misleading structured data
 - [x] No duplicated text between pages (verified: unique titles/descriptions)
 - [x] No doorway pages
+- [x] No `cursor: none`; no effect that hides or renames content
+- [x] No blocking preloader or any pattern that delays first paint
 
 ---
 

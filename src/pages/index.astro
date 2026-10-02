@@ -31,7 +31,7 @@ const LEARNING_TEASER = [
 <BaseLayout meta={META.home} graph={{ withWebsite: true }}>
   <!-- 1. Hero — H1 is exactly the visible name -->
   <section class="hero" aria-labelledby="hero-title">
-    <span class="bg-text hero__bg" aria-hidden="true">MZ</span>
+    <span class="bg-text hero__bg" data-parallax aria-hidden="true">MZ</span>
 
     <div class="container hero__inner">
       <p class="hero__lab micro" aria-hidden="true">{SITE.labLabel}</p>
@@ -63,6 +63,10 @@ const LEARNING_TEASER = [
       ><a href="/learning/">Learning</a><span aria-hidden="true"> · </span
       ><a href="/contact/">Contact</a>
     </p>
+
+    <!-- Scroll hint. Decorative, and hidden entirely under reduced motion
+         rather than left frozen mid-travel. -->
+    <span class="scroll-hint" aria-hidden="true"></span>
   </section>
 
   <!-- 2. Signal strip. Decorative, pausable, static under reduced motion. -->
@@ -70,7 +74,7 @@ const LEARNING_TEASER = [
 
   <!-- 3. Selected work -->
   <section class="section" aria-labelledby="work-title">
-    <span class="bg-text" aria-hidden="true">WORK</span>
+    <span class="bg-text" data-parallax aria-hidden="true">WORK</span>
     <div class="container">
       <SectionHead marker="// 01" title="Selected work" id="work-title" />
 
@@ -162,6 +166,11 @@ const LEARNING_TEASER = [
     min-height: min(88vh, 54rem);
     padding-block: clamp(4rem, 14vh, 9rem) clamp(2.5rem, 6vh, 4rem);
     overflow: hidden;
+  }
+
+  /* Parallax layers are compositor-promoted only while JS is driving them. */
+  [data-parallax] {
+    will-change: transform;
   }
 
   .hero__bg {

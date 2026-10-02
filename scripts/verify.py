@@ -2,7 +2,8 @@
 """
 Post-build verification for the Monssif Zhairi site.
 
-Checks, per blueprint sections 9-18:
+Checks, per blueprint sections 9-18. These are the individual assertions;
+they are printed under 11 grouped sections:
   1. every route exists and is reachable
   2. self-referencing absolute canonical, exact format
   3. one <h1> per page, no skipped heading levels, semantic landmarks
@@ -15,6 +16,7 @@ Checks, per blueprint sections 9-18:
  10. no forbidden content: monssif-dev, email, telephone, location,
      fabricated claims, meta keywords, Organization/Review/Product types
  11. internal links resolve to real files
+ 12. brand assets exist at the right size, and the header uses the logo
 """
 import json
 import os
@@ -471,6 +473,104 @@ if re.search(r"three(\.module)?(\.min)?\.js", " ".join(js)):
 
 html_total = sum(os.path.getsize(os.path.join(DIST, r)) for r, _ in ROUTES)
 print(f"  total HTML: {html_total/1024:.1f} KB across {len(ROUTES)} pages")
+
+print()
+print("=" * 78)
+print("11. BRAND ASSETS")
+print("=" * 78)
+# The brand assets are typographic, so they are easy to break silently: a
+# renderer that cannot match a font family emits a blank tile and still exits 0.
+# These checks fail loudly if the images are missing, malformed, empty of ink,
+# or if the header stops using the generated logo.
+
+BRAND_FILES = {
+    "logo.png": None,  # any size; must be transparent and contain ink
+    "favicon-48.png": (48, 48),
+    "favicon-192.png": (192, 192),
+    "favicon-512.png": (512, 512),
+    "apple-touch-icon.png": (180, 180),
+    "icon-maskable-512.png": (512, 512),
+    "og/og-default.jpg": (1200, 630),
+}
+
+
+def png_size(rel):
+    """Returns (width, height) from the IHDR chunk without a decoder."""
+    with open(os.path.join(DIST, rel), "rb") as fh:
+        head = fh.read(26)
+    if head[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    return int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
+
+
+def png_has_alpha(rel):
+    with open(os.path.join(DIST, rel), "rb") as fh:
+        head = fh.read(26)
+    return head[25] in (4, 6)
+
+
+def jpeg_size(rel):
+    with open(os.path.join(DIST, rel), "rb") as fh:
+        data = fh.read()
+    if data[:2] != b"\xff\xd8":
+        return None
+    i = 2
+    while i < len(data) - 9:
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        marker = data[i + 1]
+        # SOF0-SOF15, skipping the non-frame markers DHT/JPG/DAC.
+        if 0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC):
+            return (
+                int.from_bytes(data[i + 7 : i + 9], "big"),
+                int.from_bytes(data[i + 5 : i + 7], "big"),
+            )
+        i += 2 + int.from_bytes(data[i + 2 : i + 4], "big")
+    return None
+
+
+for rel, expected in BRAND_FILES.items():
+    path = os.path.join(DIST, rel)
+    if not os.path.exists(path):
+        fail(f"brand asset missing from dist: {rel}")
+        continue
+    size = png_size(rel) if rel.endswith(".png") else jpeg_size(rel)
+    if size is None:
+        fail(f"brand asset is not a readable image: {rel}")
+        continue
+    if expected and size != expected:
+        fail(f"{rel}: expected {expected[0]}x{expected[1]}, got {size[0]}x{size[1]}")
+    # An empty or near-empty image means the type failed to render.
+    if os.path.getsize(path) < 200:
+        fail(f"{rel}: implausibly small ({os.path.getsize(path)} bytes) - likely blank")
+    print(f"  {rel:26} {size[0]}x{size[1]}  {os.path.getsize(path)/1024:.1f} KB")
+
+# The header wordmark is a real image: it must ship, be transparent (so it sits
+# on the page background), and reserve space so it cannot shift layout.
+if not os.path.exists(os.path.join(DIST, "logo.png")):
+    fail("logo.png missing - the header wordmark cannot render")
+else:
+    if not png_has_alpha("logo.png"):
+        fail("logo.png has no alpha channel; it would show a box on the header")
+    home = read("index.html")
+    if 'src="/logo.png"' not in home:
+        fail('header does not reference /logo.png')
+    logo_tag = re.search(r'<img[^>]*src="/logo\.png"[^>]*>', home)
+    if not logo_tag:
+        fail("could not find the header logo <img>")
+    else:
+        tag = logo_tag.group(0)
+        for attr in ('alt=""', "width=", "height="):
+            if attr not in tag:
+                fail(f"header logo img missing {attr} (alt keeps it decorative; "
+                     "width/height prevent layout shift)")
+        print("  header logo <img>: alt=\"\" + explicit dimensions")
+
+# Every page uses the same header, so the check above holds site-wide.
+for path, _ in ROUTES:
+    if 'src="/logo.png"' not in read(path):
+        fail(f"{path}: header logo missing")
 
 print()
 print("=" * 78)

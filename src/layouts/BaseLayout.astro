@@ -129,24 +129,36 @@ const jsonLd = serializeGraph(graph);
 </style>
 
 {/**
- * Tiny progressive enhancement: marks the document as JS-capable, then opts
- * elements into the reveal animation. Because the revealed state is the CSS
- * default, a failure here leaves the page fully visible.
- */}
-<script is:inline>
-  document.documentElement.classList.add('js');
-</script>
-
+ * Progressive enhancement layer, recreated from the old site's script.js
+ * without its animation library.
+ *
+ * Rules this script obeys:
+ *  - Every effect is opt-in from CSS. The resting, readable state is the CSS
+ *    default, so a failure here leaves a complete, usable page.
+ *  - Nothing motion-based attaches under prefers-reduced-motion; only the
+ *    one-shot reveals run, and they run to their visible end state.
+ *  - Only transforms and two custom properties are written, so every effect
+ *    stays on the compositor and nothing here triggers layout.
+ *  - Scroll work runs in one requestAnimationFrame loop that stops on its own
+ *    once the page settles.
+ *  - The pointer ring is an addition to the real cursor, never a replacement:
+ *    `cursor: none` is never set, so the pointer is never lost.
+ */
+}
 <script>
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const fineQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
 
-  const items = document.querySelectorAll<HTMLElement>('[data-reveal]');
+  const reduced = () => motionQuery.matches;
 
-  if (reduceMotion.matches || !('IntersectionObserver' in window)) {
-    // Fully static, fully readable. Nothing to do.
-  } else {
-    items.forEach((el) => el.classList.add('js-reveal'));
+  document.documentElement.classList.add('js');
 
+  /* ------------------------------------------------------------ reveals -- */
+  /* Text/element reveals and the clip-path media reveal share one observer. */
+  const revealTargets = document.querySelectorAll<HTMLElement>('[data-reveal]');
+  const mediaTargets = document.querySelectorAll<HTMLElement>('[data-reveal-media]');
+
+  if (!reduced() && 'IntersectionObserver' in window) {
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -158,6 +170,227 @@ const jsonLd = serializeGraph(graph);
       { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
     );
 
-    items.forEach((el) => io.observe(el));
+    revealTargets.forEach((el) => {
+      el.classList.add('js-reveal');
+      io.observe(el);
+    });
+
+    mediaTargets.forEach((el) => {
+      el.classList.add('js-reveal-media');
+      io.observe(el);
+    });
   }
+
+  /* --------------------------------------- scroll velocity + parallax -- */
+  /* The page leans into the direction of travel, then settles. Background
+     typography drifts against the scroll. One transform per element. */
+  const main = document.getElementById('main');
+  const layers = Array.from(document.querySelectorAll<HTMLElement>('[data-parallax]'));
+
+  if (main && !reduced()) {
+    const MAX_SKEW = 1.6;
+    let skew = 0;
+    let lastY = window.scrollY;
+    let queued = false;
+
+    const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+    const frame = () => {
+      queued = false;
+
+      /* Read phase: everything measured before anything is written. */
+      const y = window.scrollY;
+      const delta = y - lastY;
+      lastY = y;
+
+      const offsets = layers.map((el) => {
+        const host = el.parentElement ?? el;
+        const rect = host.getBoundingClientRect();
+        const centre = rect.top + rect.height / 2 - window.innerHeight / 2;
+        return { el, shift: (centre / window.innerHeight) * -34 };
+      });
+
+      /* Write phase. */
+      const want = clamp((delta / 90) * -MAX_SKEW, -MAX_SKEW, MAX_SKEW);
+      skew += (want - skew) * 0.16;
+      if (Math.abs(skew) < 0.02) skew = 0;
+
+      /* Cleared entirely at rest, so the page returns to a clean composite. */
+      main.style.transform = skew === 0 ? '' : `skewY(${skew.toFixed(3)}deg)`;
+
+      for (const { el, shift } of offsets) {
+        el.style.transform = `translate(-50%, -50%) translate3d(0, ${shift.toFixed(2)}px, 0)`;
+      }
+
+      /* Keep ticking only while the lean is still settling. */
+      if (skew !== 0) request();
+    };
+
+    const request = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(frame);
+    };
+
+    addEventListener('scroll', request, { passive: true });
+    addEventListener('resize', request, { passive: true });
+    request();
+  }
+
+  /* ------------------------------------------------------- pointer ring -- */
+  /* Fine pointers only. Both nodes are created here, so with scripting off
+     nothing exists at all — no invisible overlay, no stale coordinate. */
+  let disposeCursor: (() => void) | undefined;
+
+  if (fineQuery.matches && !reduced()) {
+    const ring = document.createElement('div');
+    const dot = document.createElement('div');
+    ring.className = 'cursor-ring';
+    dot.className = 'cursor-dot';
+    ring.setAttribute('aria-hidden', 'true');
+    dot.setAttribute('aria-hidden', 'true');
+    document.body.append(ring, dot);
+
+    let mx = innerWidth / 2;
+    let my = innerHeight / 2;
+    let rx = mx;
+    let ry = my;
+    let raf = 0;
+
+    const tick = () => {
+      rx += (mx - rx) * 0.18;
+      ry += (my - ry) * 0.18;
+      ring.style.setProperty('--cx', `${rx.toFixed(1)}px`);
+      ring.style.setProperty('--cy', `${ry.toFixed(1)}px`);
+      dot.style.setProperty('--cx', `${mx.toFixed(1)}px`);
+      dot.style.setProperty('--cy', `${my.toFixed(1)}px`);
+
+      if (Math.abs(mx - rx) > 0.1 || Math.abs(my - ry) > 0.1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = 0;
+      }
+    };
+
+    const wake = () => {
+      document.body.setAttribute('data-cursor', '');
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+
+    const onMove = (e: MouseEvent) => {
+      mx = e.clientX;
+      my = e.clientY;
+      wake();
+    };
+
+    /* Delegated so dynamically added nodes are covered, and so moving between
+       a link's child nodes does not thrash the state. */
+    const INTERACTIVE = 'a, button, [data-magnetic], summary';
+    let wasOver = false;
+    const onOver = (e: Event) => {
+      const now = e.target instanceof Element && !!e.target.closest(INTERACTIVE);
+      if (now === wasOver) return;
+      wasOver = now;
+      const attr = now ? 'setAttribute' : 'removeAttribute';
+      ring[attr]('data-hover', '');
+      dot[attr]('data-hover', '');
+    };
+
+    addEventListener('mousemove', onMove, { passive: true });
+    addEventListener('mouseover', onOver);
+    addEventListener('mouseout', onOver);
+
+    disposeCursor = () => {
+      cancelAnimationFrame(raf);
+      removeEventListener('mousemove', onMove);
+      removeEventListener('mouseover', onOver);
+      removeEventListener('mouseout', onOver);
+      ring.remove();
+      dot.remove();
+      document.body.removeAttribute('data-cursor');
+    };
+  }
+
+  /* ------------------------------------------------------ magnetic pull -- */
+  /* JS writes two numbers; CSS owns the transform and the spring-back curve. */
+  if (fineQuery.matches && !reduced()) {
+    document.querySelectorAll<HTMLElement>('.btn, [data-magnetic]').forEach((el) => {
+      el.setAttribute('data-magnetic', '');
+      let release = 0;
+
+      el.addEventListener(
+        'mousemove',
+        (e) => {
+          const rect = el.getBoundingClientRect();
+          const dx = e.clientX - (rect.left + rect.width / 2);
+          const dy = e.clientY - (rect.top + rect.height / 2);
+          clearTimeout(release);
+          el.classList.remove('is-magnet-released');
+          el.style.setProperty('--mx', `${(dx * 0.3).toFixed(1)}px`);
+          el.style.setProperty('--my', `${(dy * 0.3).toFixed(1)}px`);
+        },
+        { passive: true },
+      );
+
+      el.addEventListener('mouseleave', () => {
+        el.classList.add('is-magnet-released');
+        release = window.setTimeout(() => el.classList.remove('is-magnet-released'), 720);
+      });
+    });
+  }
+
+  /* ------------------------------------------------------- decoder text -- */
+  /* Only the aria-hidden visual layer is mutated. The accessible name is the
+     sibling .sr-only span and is never touched, so assistive tech can never
+     read a half-decoded string. */
+  if (!reduced()) {
+    const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    document.querySelectorAll<HTMLElement>('[data-scramble]').forEach((el) => {
+      const visual = el.querySelector<HTMLElement>('.scramble-text');
+      if (!visual) return;
+
+      const original = visual.textContent ?? '';
+      let timer = 0;
+
+      const restore = () => {
+        clearInterval(timer);
+        visual.textContent = original;
+      };
+
+      /* Fires on hover and on keyboard focus, so the effect is not
+         mouse-only. */
+      const run = () => {
+        let step = 0;
+        clearInterval(timer);
+        timer = window.setInterval(() => {
+          let out = '';
+          for (let i = 0; i < original.length; i++) {
+            out += i < step ? original[i] : GLYPHS[(Math.random() * GLYPHS.length) | 0];
+          }
+          visual.textContent = out;
+          if (++step >= original.length) restore();
+        }, 30);
+      };
+
+      el.addEventListener('mouseenter', run);
+      el.addEventListener('focus', run);
+      el.addEventListener('mouseleave', restore);
+      el.addEventListener('blur', restore);
+    });
+  }
+
+  /* --------------------------------------------- mid-session preference -- */
+  /* If reduced motion is switched on while the page is open, motion-based
+     effects are torn down rather than merely slowed. The CSS reduced-motion
+     block covers the static case; this covers the live switch. */
+  motionQuery.addEventListener('change', (e) => {
+    if (!e.matches) return;
+    if (main) main.style.transform = '';
+    layers.forEach((el) => (el.style.transform = ''));
+    document
+      .querySelectorAll<HTMLElement>('[data-reveal], [data-reveal-media]')
+      .forEach((el) => el.classList.add('is-visible'));
+    disposeCursor?.();
+  });
 </script>

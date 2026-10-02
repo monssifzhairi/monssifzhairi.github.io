@@ -1,9 +1,13 @@
 /**
  * Behavioural tests for the shipped inline JavaScript, executed in a real DOM.
  *
- * Covers the two interactive systems that static analysis cannot prove:
+ * Covers the things static analysis cannot prove:
  *   - the mobile overlay navigation (focus trap, Escape, scroll lock, a11y state)
  *   - the reveal-on-scroll system and its reduced-motion behaviour
+ *   - the ticker pause control and its reduced-motion behaviour
+ *   - the pointer ring, magnetic controls, parallax and decoder text, including
+ *     that they are inert on coarse pointers and under reduced motion, and that
+ *     the decoder cannot alter an accessible name
  *
  * Run: node scripts/test-behaviour.mjs
  */
@@ -29,7 +33,8 @@ function check(name, cond, detail = '') {
 }
 
 /**
- * Boot the page's inline scripts inside jsdom, optionally with reduced motion.
+ * Boot the page's inline scripts inside jsdom, optionally with reduced motion
+ * and/or a fine pointer.
  *
  * Astro hoists page scripts into <script type="module">. jsdom cannot execute
  * ES modules, so the DOM is built without running scripts and each inline
@@ -37,7 +42,7 @@ function check(name, cond, detail = '') {
  * plain JS with no import/export, so evaluating it directly is equivalent to
  * what a browser does.
  */
-function boot({ reducedMotion = false } = {}) {
+function boot({ reducedMotion = false, finePointer = false } = {}) {
   const virtualConsole = new VirtualConsole();
   const dom = new JSDOM(html, {
     runScripts: 'outside-only',
@@ -45,18 +50,23 @@ function boot({ reducedMotion = false } = {}) {
     url: 'https://monssifzhairi.github.io/',
     virtualConsole,
     beforeParse(window) {
-      window.matchMedia = (query) => ({
-        matches: /prefers-reduced-motion/.test(query) ? reducedMotion : false,
-        media: query,
-        onchange: null,
-        addEventListener() {},
-        removeEventListener() {},
-        addListener() {},
-        removeListener() {},
-        dispatchEvent() {
-          return false;
-        },
-      });
+      window.matchMedia = (query) => {
+        let matches = false;
+        if (/prefers-reduced-motion/.test(query)) matches = reducedMotion;
+        if (/hover: hover/.test(query)) matches = finePointer;
+        return {
+          matches,
+          media: query,
+          onchange: null,
+          addEventListener() {},
+          removeEventListener() {},
+          addListener() {},
+          removeListener() {},
+          dispatchEvent() {
+            return false;
+          },
+        };
+      };
       window.IntersectionObserver = class {
         constructor(cb) {
           this.cb = cb;
@@ -250,6 +260,103 @@ console.log('\nAMBIENT TICKER');
   check('ticker marked paused under reduced motion', doc.getElementById('ticker').dataset.paused === 'true');
   dom.window.close();
 }
+
+/* --------------------------------------------- pointer + motion layer -- */
+console.log('\nPOINTER RING, MAGNETIC, PARALLAX, DECODER TEXT');
+
+{
+  // Default boot: the mock reports a coarse pointer.
+  const dom = boot();
+  const { window } = dom;
+  const doc = window.document;
+  check(
+    'no pointer ring on a coarse pointer',
+    !doc.querySelector('.cursor-ring') && !doc.querySelector('.cursor-dot'),
+  );
+  check(
+    'no magnetic hookup on a coarse pointer',
+    doc.querySelectorAll('.btn[data-magnetic]').length === 0,
+  );
+  dom.window.close();
+}
+
+{
+  const dom = boot({ finePointer: true });
+  const { window } = dom;
+  const doc = window.document;
+  const ring = doc.querySelector('.cursor-ring');
+  const dot = doc.querySelector('.cursor-dot');
+
+  check('pointer ring created on a fine pointer', !!ring && !!dot);
+  check('ring is hidden from assistive tech', ring?.getAttribute('aria-hidden') === 'true');
+  check('dot is hidden from assistive tech', dot?.getAttribute('aria-hidden') === 'true');
+
+  // The native pointer must survive: the design adds a ring, it never
+  // replaces the cursor.
+  const styles = [...doc.querySelectorAll('style')].map((s) => s.textContent).join('');
+  check('native cursor is never hidden (no cursor:none)', !/cursor\s*:\s*none/.test(styles));
+
+  window.dispatchEvent(new window.MouseEvent('mousemove', { clientX: 120, clientY: 80 }));
+  check('ring activates on pointer movement', doc.body.hasAttribute('data-cursor'));
+
+  const btn = doc.querySelector('.btn');
+  check('buttons opt into the magnetic effect', btn?.hasAttribute('data-magnetic') === true);
+  dom.window.close();
+}
+
+{
+  const dom = boot({ finePointer: true, reducedMotion: true });
+  const { window } = dom;
+  const doc = window.document;
+  check(
+    'no pointer ring under reduced motion',
+    !doc.querySelector('.cursor-ring') && !doc.querySelector('.cursor-dot'),
+  );
+  check(
+    'no magnetic hookup under reduced motion',
+    doc.querySelectorAll('.btn[data-magnetic]').length === 0,
+  );
+  check(
+    'parallax layers are not driven under reduced motion',
+    [...doc.querySelectorAll('[data-parallax]')].every((el) => !el.style.transform),
+  );
+  check('no scroll skew under reduced motion', !doc.getElementById('main').style.transform);
+  dom.window.close();
+}
+
+/* The parallax/scroll loop is driven by requestAnimationFrame, so its checks
+   have to run after a frame has actually been served. */
+const parallaxChecks = (async () => {
+  const dom = boot();
+  const { window } = dom;
+  const doc = window.document;
+
+  await new Promise((resolve) => window.requestAnimationFrame(() => resolve(undefined)));
+
+  check(
+    'parallax layers are driven when motion is allowed',
+    [...doc.querySelectorAll('[data-parallax]')].some((el) => el.style.transform.includes('translate3d')),
+  );
+
+  /* Decoder text must never be able to change an accessible name. */
+  const scrambled = [...doc.querySelectorAll('[data-scramble]')];
+  check('nav links carry the decoder effect', scrambled.length > 0, `${scrambled.length} links`);
+
+  const namesIntact = scrambled.every((el) => {
+    const visual = el.querySelector('.scramble-text');
+    const real = el.querySelector('.sr-only');
+    return (
+      visual?.getAttribute('aria-hidden') === 'true' &&
+      real &&
+      real.textContent.trim() === visual.textContent.trim()
+    );
+  });
+  check('decoder visual layer is aria-hidden with an intact accessible name', namesIntact);
+
+  dom.window.close();
+})();
+
+await parallaxChecks;
 
 console.log('\n' + '='.repeat(60));
 if (failures.length) {

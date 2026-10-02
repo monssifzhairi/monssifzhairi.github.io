@@ -82,33 +82,115 @@ const href = `/projects/${project.slug}/`;
     transition: border-color var(--t-slow) var(--ease);
   }
 
+  /*
+   * Editorial row hover, recreated from the old site's .arsenal-item.
+   *
+   * A white panel wipes up through the row from the bottom edge while the two
+   * halves of the row separate: the title slides right, the meta line slides
+   * left, and every label inverts to a dark tone so it stays legible against
+   * the panel. The wipe is a pseudo-element, so it adds no markup.
+   *
+   * Reachable by keyboard through :focus-within on the row's single link, so
+   * the effect is never hover-only.
+   */
+  .row::before {
+    content: '';
+    position: absolute;
+    inset: -1px 0 0;
+    z-index: 0;
+    background: var(--accent);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform var(--t-slow) var(--ease);
+  }
+
   .row:last-child {
     border-bottom: 1px solid var(--line);
   }
 
-  .row:hover {
+  .row:hover,
+  .row:focus-within {
     border-top-color: var(--line-strong);
   }
 
-  /* Whole-row hover target, matching the stretched link area. */
-  .row:has(.row__link:hover),
-  .row:has(.row__link:focus-visible) {
-    border-top-color: var(--line-strong);
+  .row:hover::before,
+  .row:focus-within::before {
+    transform: scaleY(1);
+    transform-origin: top;
   }
 
-  .row:has(.row__link:hover) .row__figure,
-  .row:has(.row__link:focus-visible) .row__figure {
-    opacity: 1;
-    transform: none;
+  /* Separating the two halves. Transform only. */
+  .row__title,
+  .row__meta,
+  .row__index {
+    transition:
+      transform var(--t-slow) var(--ease),
+      color var(--t-mid) ease;
+  }
+
+  .row:hover .row__title,
+  .row:focus-within .row__title {
+    transform: translateX(1.25rem);
+  }
+
+  .row:hover .row__meta,
+  .row:focus-within .row__meta {
+    transform: translateX(-1.25rem);
+  }
+
+  /*
+   * Dark tones for the inverted state. These are not arbitrary: on a #fff
+   * panel the default greys drop to roughly 2:1 and would fail contrast, so
+   * each one is restated explicitly.
+   */
+  .row:hover .row__name,
+  .row:focus-within .row__name {
+    color: var(--bg);
+  }
+
+  .row:hover .row__summary,
+  .row:focus-within .row__summary {
+    color: #3f3f3f;
+  }
+
+  .row:hover .row__index,
+  .row:focus-within .row__index,
+  .row:hover .row__count,
+  .row:focus-within .row__count,
+  .row:hover .row__status,
+  .row:focus-within .row__status {
+    color: #4a4a4a;
+  }
+
+  .row:hover .row__status-dot,
+  .row:focus-within .row__status-dot {
+    background: var(--bg);
+  }
+
+  /* Tags and the "to confirm" pill need dark borders and text on the panel. */
+  .row:hover .tags li,
+  .row:focus-within .tags li {
+    color: #3f3f3f;
+    border-color: rgba(0, 0, 0, 0.28);
+  }
+
+  .row:hover .todo,
+  .row:focus-within .todo {
+    color: #3f3f3f;
+    border-color: rgba(0, 0, 0, 0.32);
   }
 
   .row__index {
     padding-top: 0.4rem;
     color: var(--label);
+    position: relative;
+    z-index: 2;
   }
 
   .row__body {
     min-width: 0;
+    position: relative;
+    z-index: 2;
   }
 
   .row__title {
@@ -155,10 +237,17 @@ const href = `/projects/${project.slug}/`;
     color: var(--text-muted);
     font-size: 0.98rem;
     line-height: 1.7;
+    transition: color var(--t-mid) ease;
   }
 
   .row__tags {
     margin-top: 1.1rem;
+  }
+
+  .row__tags li {
+    transition:
+      color var(--t-mid) ease,
+      border-color var(--t-mid) ease;
   }
 
   .row__meta {
@@ -188,6 +277,7 @@ const href = `/projects/${project.slug}/`;
     border-radius: 50%;
     background: var(--accent);
     flex: none;
+    transition: background-color var(--t-mid) ease;
   }
 
   .row__count {
@@ -196,25 +286,45 @@ const href = `/projects/${project.slug}/`;
 
   /* Oversized typographic figure, revealed on hover. Purely decorative:
      hidden from assistive tech, and it never carries information the text
-     does not already carry. */
+     does not already carry. The stroke inverts with the row so it stays
+     visible against the white panel. */
   .row__figure {
     position: absolute;
     right: 0;
     bottom: 0.35rem;
+    z-index: 2;
     font-family: var(--font-display);
     font-weight: 700;
     font-size: clamp(3rem, 11vw, 8rem);
     line-height: 0.8;
     letter-spacing: -0.02em;
-    color: transparent;
-    -webkit-text-stroke: 1px var(--line);
+    color: var(--line);
     pointer-events: none;
     user-select: none;
     opacity: 0;
     transform: translateY(8px);
     transition:
       opacity var(--t-slow) var(--ease),
-      transform var(--t-slow) var(--ease);
+      transform var(--t-slow) var(--ease),
+      -webkit-text-stroke-color var(--t-mid) ease;
+  }
+
+  /* Transparent fill only behind an @supports guard; without a stroke a
+     transparent fill would render nothing. */
+  @supports (-webkit-text-stroke: 1px #fff) {
+    .row__figure {
+      color: transparent;
+      -webkit-text-stroke: 1px var(--line);
+    }
+  }
+
+  .row:has(.row__link:hover) .row__figure,
+  .row:has(.row__link:focus-visible) .row__figure,
+  .row:hover .row__figure,
+  .row:focus-within .row__figure {
+    opacity: 1;
+    transform: none;
+    -webkit-text-stroke-color: rgba(0, 0, 0, 0.22);
   }
 
   /* The status/meta line must stay above the stretched link overlay. */
@@ -244,11 +354,38 @@ const href = `/projects/${project.slug}/`;
     .row__figure {
       display: none;
     }
+
+    /* No separation slide here either. The gutter is only --gutter (1.25rem at
+       this width) and .row does not clip, so shifting the title by 1.25rem can
+       push it past the viewport and produce a horizontal scrollbar. */
+    .row:hover .row__title,
+    .row:focus-within .row__title,
+    .row:hover .row__meta,
+    .row:focus-within .row__meta {
+      transform: none;
+    }
+  }
+
+  /* The wipe is a hover/focus gesture. On touch there is no hover, so it is
+     switched off entirely rather than left to fire on tap. */
+  @media (hover: none) {
+    .row::before {
+      display: none;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .row__figure {
       transition: none;
+    }
+
+    /* No separation slide without motion, but keep the inversion: it is a
+       colour change, and it is the clearest focus affordance on this row. */
+    .row:hover .row__title,
+    .row:focus-within .row__title,
+    .row:hover .row__meta,
+    .row:focus-within .row__meta {
+      transform: none;
     }
   }
 </style>

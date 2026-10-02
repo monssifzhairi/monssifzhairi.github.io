@@ -56,12 +56,28 @@ const items = TOPICS.join(' • ');
   .ticker__group {
     font-family: var(--font-display);
     font-weight: 500;
-    font-size: clamp(0.9rem, 2vw, 1.25rem);
-    letter-spacing: 0.18em;
+    font-size: clamp(1.15rem, 3vw, 2.5rem);
+    letter-spacing: 0.14em;
     text-transform: uppercase;
+    /* Outlined marquee type, recreated from the old site's .marquee span.
+       The stroke uses --text-muted rather than pure white so it stays a
+       readable decorative layer instead of glaring; the viewport is
+       aria-hidden and the same topics appear as a plain list on the page.
+
+       `-webkit-text-stroke` is a prefixed, non-standard property, so the
+       transparent fill is applied only behind an @supports guard. Without it,
+       a browser that cannot stroke text would honour `color: transparent` and
+       render nothing at all. The default is plain, legible muted type. */
     color: var(--label);
     white-space: nowrap;
     padding-block: 0.85rem;
+  }
+
+  @supports (-webkit-text-stroke: 1px #fff) {
+    .ticker__group {
+      color: transparent;
+      -webkit-text-stroke: 1px var(--text-muted);
+    }
   }
 
   @keyframes ticker-scroll {

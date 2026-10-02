@@ -16,8 +16,15 @@ function isActive(href: string) {
 
 <header class="site-header">
   <div class="site-header__inner">
-    <a class="wordmark" href="/" aria-label={`${SITE.name} — home`}>
-      <span class="wordmark__mono" aria-hidden="true">MZ</span>
+    <a class="wordmark" href="/" aria-label={`${SITE.name} — home`} data-magnetic>
+      <img
+        class="wordmark__mono"
+        src="/logo.png"
+        alt=""
+        width="61"
+        height="48"
+        decoding="async"
+      />
       <span class="wordmark__lab micro micro--tight" aria-hidden="true">
         {SITE.labLabel}
       </span>
@@ -28,12 +35,21 @@ function isActive(href: string) {
         {
           PRIMARY_NAV.map((item) => (
             <li>
+              {/*
+                Decoder text on hover/focus, recreated from the old site.
+
+                The visible label is aria-hidden and mutated by the effect; the
+                accessible name is the adjacent .sr-only span, so assistive tech
+                always reads the finished word and never a half-decoded one.
+              */}
               <a
                 href={item.href}
                 class="desktop-nav__link"
+                data-scramble
                 aria-current={isActive(item.href) ? 'page' : undefined}
               >
-                {item.label}
+                <span class="scramble-text" aria-hidden="true">{item.label}</span>
+                <span class="sr-only">{item.label}</span>
               </a>
             </li>
           ))
@@ -120,19 +136,21 @@ function isActive(href: string) {
 
   .wordmark {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.85rem;
     min-height: 44px;
     padding-block: 0.5rem;
   }
 
+  /* The monogram is a real PNG (generated from the Oswald outlines in
+     public/favicon.svg) rather than live text, so it renders identically to the
+     favicon and the OG image. Intrinsic width/height are set in the markup to
+     reserve space and prevent layout shift; height below matches the 1.5rem the
+     wordmark used when it was text. */
   .wordmark__mono {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1.5rem;
-    letter-spacing: 0.04em;
-    color: var(--accent);
-    line-height: 1;
+    display: block;
+    height: 1.5rem;
+    width: auto;
   }
 
   .wordmark__lab {

@@ -20,4 +20,19 @@ export default defineConfig({
   devToolbar: {
     enabled: false,
   },
+  vite: {
+    build: {
+      /**
+       * Astro inlines a script only when its minified output is under Vite's
+       * `assetsInlineLimit` (4096 by default). The interaction layer is ~4 KB
+       * minified, so the default would flip it into a separate _astro/*.js
+       * request at the first sign of growth. Raising the limit keeps the whole
+       * site at zero JavaScript files, which scripts/verify.py asserts.
+       *
+       * Images and fonts all live in public/ and are copied verbatim, so this
+       * limit only ever applies to the inline script chunks.
+       */
+      assetsInlineLimit: 8192,
+    },
+  },
 });

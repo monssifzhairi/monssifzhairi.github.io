@@ -291,8 +291,15 @@
     border-bottom-color: var(--accent);
   }
 
-  /* Pill buttons, lifted from the old site's .btn */
+  /* Pill buttons.
+     Recreated from the old site's .btn: a full-bleed panel wipes up from the
+     bottom edge on hover/focus while the label inverts to the opposite colour.
+     `isolation: isolate` keeps the negatively-stacked panel inside the button's
+     own stacking context so it can never fall behind the page background. */
   .btn {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -308,20 +315,32 @@
     text-transform: uppercase;
     color: var(--text);
     transition:
-      background-color var(--t-base) ease,
       color var(--t-base) ease,
-      border-color var(--t-base) ease,
-      transform var(--t-slow) var(--ease);
+      border-color var(--t-base) ease;
   }
 
-  .btn:hover {
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
     background: var(--accent);
+    transform: scaleY(0);
+    transform-origin: bottom;
+    transition: transform var(--t-slow) var(--ease);
+  }
+
+  .btn:hover::after,
+  .btn:focus-visible::after {
+    transform: scaleY(1);
+    /* Origin flips so the panel appears to travel upward through the button. */
+    transform-origin: top;
+  }
+
+  .btn:hover,
+  .btn:focus-visible {
     border-color: var(--accent);
     color: var(--bg);
-  }
-
-  .btn:active {
-    transform: translateY(1px);
   }
 
   .btn--primary {
@@ -330,9 +349,38 @@
     color: var(--bg);
   }
 
-  .btn--primary:hover {
-    background: transparent;
+  /* Inverted wipe: the primary button fills with the page background and the
+     label turns white, so both button variants share one gesture. */
+  .btn--primary::after {
+    background: var(--bg);
+  }
+
+  .btn--primary:hover,
+  .btn--primary:focus-visible {
     color: var(--accent);
+  }
+
+  /* Pressed feedback without touching `transform`, which the magnetic effect
+     below owns on fine-pointer devices. */
+  @media (hover: none) {
+    .btn:active {
+      opacity: 0.75;
+    }
+  }
+
+  /* Magnetic pull. JavaScript writes only the two custom properties; the
+     transform itself stays in CSS so the browser owns the compositing. */
+  [data-magnetic] {
+    transform: translate3d(var(--mx, 0px), var(--my, 0px), 0);
+    transition: transform 0.12s linear;
+  }
+
+  [data-magnetic].is-magnet-released {
+    --mx: 0px;
+    --my: 0px;
+    /* An overshoot curve approximates the old site's elastic return without a
+       physics loop in JavaScript. */
+    transition: transform 0.7s cubic-bezier(0.34, 1.4, 0.64, 1);
   }
 
   .btn--small {
@@ -410,11 +458,19 @@
     font-size: clamp(5rem, 22vw, 26rem);
     line-height: 1;
     letter-spacing: -0.02em;
-    color: transparent;
-    -webkit-text-stroke: 1px var(--line);
+    color: var(--line);
     pointer-events: none;
     user-select: none;
     z-index: 0;
+  }
+
+  /* Outlined rather than filled, but only where text-stroke actually exists:
+     `color: transparent` without a stroke would render nothing at all. */
+  @supports (-webkit-text-stroke: 1px #fff) {
+    .bg-text {
+      color: transparent;
+      -webkit-text-stroke: 1px var(--line);
+    }
   }
 
   /* Footer facts list, lifted from the old .about-facts */
@@ -519,6 +575,149 @@
   }
 }
 
+/* ==================================================== atmosphere ========
+   Interactive layer recreated from the old site, reimplemented rather than
+   copied. Two deliberate departures are documented in README.md:
+
+   1. The native cursor is never hidden. The old site set `cursor: none`
+      globally; the ring here is an addition to the real pointer, not a
+      replacement, so the pointer is never lost.
+   2. Both elements are created by JavaScript, so with scripting off nothing
+      renders at all — no invisible overlay, no trapped pointer.
+
+   The ring's follow is eased in JS; here it only reacts to hover state. Sizing
+   uses `scale` rather than width/height so the growth is compositor-only. */
+
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10000;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: 0;
+  will-change: transform;
+  transform: translate3d(var(--cx, 0px), var(--cy, 0px), 0) translate(-50%, -50%)
+    scale(var(--cs, 1));
+}
+
+.cursor-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  transition: opacity var(--t-base) ease;
+}
+
+.cursor-ring {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line-strong);
+  transition:
+    opacity var(--t-base) ease,
+    background-color var(--t-base) ease,
+    border-color var(--t-base) ease;
+}
+
+body[data-cursor] .cursor-dot,
+body[data-cursor] .cursor-ring {
+  opacity: 1;
+}
+
+/* Over an interactive element the dot yields and the ring opens up. */
+body[data-cursor] .cursor-ring[data-hover] {
+  --cs: 1.5;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: transparent;
+}
+
+body[data-cursor] .cursor-dot[data-hover] {
+  opacity: 0;
+}
+
+/* Never on touch: there is no pointer to follow, and an overlay that tracks a
+   stale coordinate is worse than no overlay. */
+@media (hover: none), (pointer: coarse) {
+  .cursor-dot,
+  .cursor-ring {
+    display: none;
+  }
+}
+
+/* Scroll hint: a hairline with a highlight travelling down it. */
+.scroll-hint {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  width: 1px;
+  height: 60px;
+  background: var(--line-strong);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scroll-hint::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  animation: scroll-hint-travel 2.2s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+}
+
+@keyframes scroll-hint-travel {
+  0% {
+    transform: translateY(-100%);
+  }
+  60%,
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+/* Clip-path media reveal for real project imagery.
+   Opt-in, like .js-reveal: the uncovered state is the CSS default, so media is
+   never hidden when scripting is unavailable. */
+.reveal-media {
+  clip-path: inset(0 0 0 0);
+}
+
+.js-reveal-media {
+  clip-path: inset(100% 0 0 0);
+  transition: clip-path 1s var(--ease);
+}
+
+.js-reveal-media.is-visible {
+  clip-path: inset(0 0 0 0);
+}
+
+.reveal-media img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Monochrome-first media, matching the old site's duotone treatment. */
+.reveal-media img {
+  filter: grayscale(1) contrast(1.05);
+  transition:
+    filter var(--t-slow) ease,
+    transform 0.8s var(--ease);
+}
+
+.reveal-media:hover img,
+.reveal-media:focus-within img {
+  filter: grayscale(0) contrast(1);
+  transform: scale(1.03);
+}
+
+/* Scramble/decoder text. The visual layer is aria-hidden; the accessible name
+   lives in a sibling .sr-only span, so assistive tech never reads a half-
+   decoded string. */
+.scramble-text {
+  white-space: nowrap;
+}
+
 /* ==================================================== reduced motion ====
    A complete, static, fully readable experience — not a degraded one.
    Disables the texture animation and all reveal transitions. Elements keep
@@ -541,6 +740,47 @@
     opacity: 1 !important;
     transform: none !important;
   }
+
+  /* Hide rather than freeze: a stopped travelling highlight reads as a broken
+     scroll indicator. */
+  .scroll-hint {
+    display: none !important;
+  }
+
+  /* Uncover immediately instead of wiping. */
+  .js-reveal-media,
+  .js-reveal-media.is-visible {
+    clip-path: none !important;
+  }
+
+  /* The magnetic offset is meaningless without motion, and leaving it applied
+     would leave a button sitting off-centre. */
+  [data-magnetic],
+  [data-magnetic].is-magnet-released {
+    --mx: 0px;
+    --my: 0px;
+    transform: none !important;
+  }
+
+  /* No pointer-follow elements exist under reduced motion, but if scripting
+     created them before the preference changed, hide them. */
+  .cursor-dot,
+  .cursor-ring {
+    display: none !important;
+  }
+
+  /* Parallax layers must return to their centred resting position. */
+  [data-parallax] {
+    transform: translate(-50%, -50%) !important;
+  }
+}
+
+/* The scroll-velocity skew is applied to <main>. If the preference flips on
+   mid-session, JS clears it; this is the belt-and-braces fallback. */
+@media (prefers-reduced-motion: reduce) {
+  main {
+    transform: none !important;
+  }
 }
 
 /* ==================================================== print ============ */
@@ -548,7 +788,11 @@
   .film-texture,
   .site-header,
   .site-footer,
-  .ticker {
+  .ticker,
+  .scroll-hint,
+  .cursor-dot,
+  .cursor-ring,
+  [data-parallax] {
     display: none !important;
   }
 
