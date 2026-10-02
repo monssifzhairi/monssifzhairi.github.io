@@ -1,0 +1,170 @@
+---
+import { TOPICS } from '../data/site';
+
+/**
+ * Ambient ticker of real topics. Part of the old site's identity.
+ * - aria-hidden: purely decorative, hidden from assistive tech.
+ * - Pausable: a real button, in the tab order, that stops the animation.
+ * - Static under prefers-reduced-motion (handled in CSS and by the paused
+ *   flag being forced on below).
+ *
+ * The same topic text also exists as a plain list elsewhere on the page, so no
+ * information depends on the animation.
+ */
+const items = TOPICS.join(' • ');
+---
+
+<div class="ticker" id="ticker">
+  <div class="ticker__viewport" aria-hidden="true">
+    <div class="ticker__track" id="ticker-track">
+      <span class="ticker__group">{items} •&nbsp;</span>
+      <span class="ticker__group">{items} •&nbsp;</span>
+    </div>
+  </div>
+  <button type="button" class="ticker__control" id="ticker-toggle" aria-pressed="false">
+    <span class="ticker__icon" aria-hidden="true"></span>
+    <span class="sr-only" id="ticker-toggle-label">Pause the topic ticker</span>
+  </button>
+</div>
+
+<style>
+  .ticker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border-block: 1px solid var(--line);
+    overflow: hidden;
+  }
+
+  .ticker__viewport {
+    flex: 1;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  }
+
+  .ticker__track {
+    display: flex;
+    width: max-content;
+    animation: ticker-scroll 48s linear infinite;
+  }
+
+  .ticker[data-paused='true'] .ticker__track {
+    animation-play-state: paused;
+  }
+
+  .ticker__group {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(0.9rem, 2vw, 1.25rem);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--label);
+    white-space: nowrap;
+    padding-block: 0.85rem;
+  }
+
+  @keyframes ticker-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      /* -50% because the track holds exactly two identical groups. */
+      transform: translateX(-50%);
+    }
+  }
+
+  .ticker__control {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-left: 1px solid var(--line);
+    color: var(--label);
+  }
+
+  .ticker__icon {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-left: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+  }
+
+  .ticker[data-paused='true'] .ticker__icon {
+    border: 0;
+    width: 0;
+    height: 0;
+    border-left: 9px solid currentColor;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+  }
+
+  .ticker__control:hover,
+  .ticker__control:focus-visible {
+    color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ticker__track {
+      animation: none;
+      transform: none;
+    }
+
+    .ticker__viewport {
+      overflow-x: auto;
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+
+    /* Under reduced motion the control is meaningless: hide it rather than
+       offering a control over an animation that does not run. */
+    .ticker__control {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const ticker = document.getElementById('ticker') as HTMLElement | null;
+  const control = document.getElementById('ticker-toggle') as HTMLButtonElement | null;
+  const label = document.getElementById('ticker-toggle-label');
+
+  if (ticker && control && label) {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    // Off by default under reduced motion; otherwise off until the user pauses.
+    const setPaused = (paused: boolean) => {
+      ticker.dataset.paused = String(paused);
+      control.setAttribute('aria-pressed', String(paused));
+      label.textContent = paused ? 'Resume the topic ticker' : 'Pause the topic ticker';
+    };
+
+    if (reduceMotion.matches) {
+      // Use the same setter so the DOM state and the CSS
+      // (`.ticker[data-paused='true']`) never disagree.
+      setPaused(true);
+      label.textContent = 'The topic ticker is paused because reduced motion is on';
+      control.disabled = true;
+    } else {
+      setPaused(false);
+      control.addEventListener('click', () => {
+        setPaused(ticker.dataset.paused !== 'true');
+      });
+      // If the user turns reduced motion on mid-session, stop the motion.
+      // If they turn it off again, hand control back to them.
+      reduceMotion.addEventListener('change', (e) => {
+        if (e.matches) {
+          setPaused(true);
+          control.disabled = true;
+          label.textContent = 'The topic ticker is paused because reduced motion is on';
+        } else {
+          control.disabled = false;
+          setPaused(false);
+        }
+      });
+    }
+  }
+</script>

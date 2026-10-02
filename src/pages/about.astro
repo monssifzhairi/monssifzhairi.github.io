@@ -1,0 +1,267 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import SectionHead from '../components/SectionHead.astro';
+import { META } from '../data/meta';
+import { PROJECTS } from '../data/projects';
+import { SITE } from '../data/site';
+
+const byslug = Object.fromEntries(PROJECTS.map((p) => [p.slug, p]));
+---
+
+<BaseLayout
+  meta={META.about}
+  graph={{
+    withWebsite: true,
+    withProfilePage: true,
+    crumbs: [
+      { name: 'Home', href: '/' },
+      { name: 'About', href: '/about/' },
+    ],
+  }}
+>
+  <div class="container">
+    <div class="page-top">
+      <Breadcrumbs
+        crumbs={[
+          { name: 'Home', href: '/' },
+          { name: 'About', href: '/about/' },
+        ]}
+      />
+      <h1 class="page-title" data-reveal>About {SITE.name}</h1>
+    </div>
+  </div>
+
+  <!-- Who I am -->
+  <section class="section" aria-labelledby="who">
+    <div class="container">
+      <SectionHead marker="// 01" title="Who I am" id="who" />
+      <div class="prose measure-narrow" data-reveal>
+        <p>
+          I'm <strong>Monssif Zhairi</strong>. My name is also written Zhairi Monssif —
+          family name first — and both orderings refer to the same person.
+        </p>
+        <p>
+          I build for the web and I take things apart to understand them. That is the
+          whole method: build something, break something, read the source, understand why
+          it did what it did.
+        </p>
+        <p>
+          Most of what I make sits in the browser. The rest of the time is spent on the
+          layers underneath it.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- What I work on -->
+  <section class="section rule" aria-labelledby="work">
+    <div class="container">
+      <SectionHead marker="// 02" title="What I work on" id="work" />
+
+      <div class="work-grid">
+        <div class="prose" data-reveal>
+          <p>
+            <strong>Web development.</strong> Real products rather than mockups:
+            authentication, storage, data rules and the interface in front of them. The
+            clearest example is
+            <a href="/projects/monssif-fit/">MONSSIF FIT</a>, where access is enforced in the
+            database instead of trusted to the browser.
+          </p>
+          <p>
+            <strong>Creative development.</strong> 3D and WebGL, and scroll-driven
+            interaction — the kind of thing that only makes sense as code. See
+            <a href="/projects/nike-d-line/">NIKE D-LINE</a> for the 3D side and
+            <a href="/projects/promesatec/">PROMESATEC</a> for interactive work.
+          </p>
+          <p>
+            <strong>AI.</strong> A subject I want to understand rather than a feature to
+            advertise.
+          </p>
+          <p>
+            <strong>Python and JavaScript.</strong> The two languages I reach for. Dart
+            shows up too, in <a href="/projects/mr-chess/">MR-CHESS</a>, where I wanted to
+            implement the rules of a game from scratch.
+          </p>
+        </div>
+
+        <ul class="project-links" aria-label="Projects referenced on this page" data-reveal>
+          {
+            ['mr-chess', 'monssif-fit', 'nike-d-line', 'promesatec'].map((slug) => (
+              <li>
+                <a href={`/projects/${slug}/`}>
+                  <span class="project-links__name">{byslug[slug]!.name}</span>
+                  <span class="project-links__summary">{byslug[slug]!.summary}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- What I'm learning -->
+  <section class="section rule" aria-labelledby="learning">
+    <div class="container">
+      <SectionHead marker="// 03" title="What I'm learning" id="learning" />
+      <div class="prose measure-narrow" data-reveal>
+        <p>
+          <strong>Cybersecurity, Linux and networking</strong> on one side — how a machine
+          is put together, how it talks to other machines, and where those conversations
+          break.
+        </p>
+        <p>
+          <strong>Mathematics and mathematical logic</strong> on the other — not for their
+          own sake, but because they are how a piece of code gets held to what it actually
+          claims to do.
+        </p>
+        <p>
+          That's the honest split of what I'm studying right now.
+          <a href="/learning/">The learning map</a> has the detail, area by area.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How I work -->
+  <section class="section rule" aria-labelledby="how">
+    <div class="container">
+      <SectionHead marker="// 04" title="How I work" id="how" />
+      <div class="prose measure-narrow" data-reveal>
+        <p>
+          I learn by shipping something real and reading the source. A finished, working
+          thing teaches more than a plan for one, and the source is where the reasoning
+          behind it actually lives.
+        </p>
+        <p>
+          Understanding how systems break is the fastest way to understand how they work.
+          That's true of a chess rules engine, of a database permission policy, and of a
+          3D scene equally.
+        </p>
+        <p>
+          Which means the projects carry honest status labels. If something is in progress,
+          it says so.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Elsewhere -->
+  <section class="section rule" aria-labelledby="elsewhere">
+    <div class="container">
+      <SectionHead marker="// 05" title="Elsewhere" id="elsewhere" />
+
+      <dl class="facts measure-narrow" data-reveal>
+        <div class="facts__row">
+          <dt class="fact-label">GitHub</dt>
+          <dd class="fact-value">
+            <a
+              class="link"
+              href={SITE.github}
+              target="_blank"
+              rel="noopener noreferrer"
+            >github.com/{SITE.githubHandle}<span class="sr-only"> — opens in a new tab</span></a>
+          </dd>
+        </div>
+        <div class="facts__row">
+          <dt class="fact-label">Previous site</dt>
+          <dd class="fact-value">
+            <a
+              class="link"
+              href={SITE.legacySite}
+              target="_blank"
+              rel="noopener noreferrer"
+            >www.monssif.xo.je<span class="sr-only"> — opens in a new tab</span></a>
+          </dd>
+        </div>
+        <div class="facts__row">
+          <dt class="fact-label">Status</dt>
+          <dd class="fact-value">
+            Open to collaboration and interesting problems. See
+            <a class="link" href="/contact/">contact</a>.
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-top {
+    padding-top: clamp(2.5rem, 8vw, 5rem);
+  }
+
+  .page-title {
+    margin-top: 1.25rem;
+    font-size: clamp(2.25rem, 6.5vw, 5rem);
+    color: var(--accent);
+  }
+
+  .work-grid {
+    display: grid;
+    gap: clamp(2.5rem, 6vw, 4rem);
+  }
+
+  @media (min-width: 64rem) {
+    .work-grid {
+      grid-template-columns: 1.35fr 1fr;
+      align-items: start;
+    }
+  }
+
+  .project-links {
+    list-style: none;
+    border-top: 1px solid var(--line);
+  }
+
+  .project-links a {
+    display: block;
+    padding: 1.1rem 0;
+    border-bottom: 1px solid var(--line);
+    transition: transform var(--t-slow) var(--ease);
+  }
+
+  .project-links a:hover,
+  .project-links a:focus-visible {
+    transform: translateX(6px);
+  }
+
+  .project-links__name {
+    display: block;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .project-links__summary {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  .facts__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1.5rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .facts__row:first-child {
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .facts dd {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text);
+  }
+</style>

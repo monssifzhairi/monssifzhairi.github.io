@@ -1,0 +1,254 @@
+---
+import type { Project } from '../data/projects';
+
+type Props = {
+  project: Project;
+  /** 'compact' for the homepage list, 'full' for the projects index. */
+  variant?: 'compact' | 'full';
+  position: number;
+  total: number;
+};
+
+const { project, variant = 'compact', position, total } = Astro.props;
+const href = `/projects/${project.slug}/`;
+
+/**
+ * One project as a full-width editorial row. Not a card: no shadow, no box,
+ * no equal grid. Hierarchy comes from scale and a hairline rule.
+ *
+ * The whole row is a real <a>, so the content is reachable by a normal link
+ * within two clicks of the homepage (§9.1) with no JavaScript involved.
+ */
+---
+
+<article class={`row row--${variant}`} data-reveal>
+  <span class="row__index micro micro--tight" aria-hidden="true">{project.index}</span>
+
+  <div class="row__body">
+    <h3 class="row__title">
+      <a href={href} class="row__link">
+        <span class="row__name">{project.name}</span>
+        <span class="sr-only">
+          {variant === 'full' ? `— case study, {project.status ?? 'status to confirm'}` : '— read the case study'}
+        </span>
+      </a>
+    </h3>
+
+    <p class="row__summary">{project.summary}</p>
+
+    {
+      variant === 'full' && (
+        <ul class="tags row__tags" aria-label={`${project.name} tech stack`}>
+          {project.stack.length > 0 ? (
+            project.stack.map((t) => <li>{t}</li>)
+          ) : (
+            <li>Stack to confirm</li>
+          )}
+        </ul>
+      )
+    }
+
+    <p class="row__meta">
+      <span class="row__status">
+        {
+          project.status ? (
+            <>
+              <span class="row__status-dot" aria-hidden="true"></span>
+              {project.status}
+            </>
+          ) : (
+            <span class="todo">Status to confirm</span>
+          )
+        }
+      </span>
+      <span class="row__count micro micro--tight" aria-hidden="true">
+        {String(position).padStart(2, '0')} / {String(total).padStart(2, '0')}
+      </span>
+    </p>
+  </div>
+
+  <span class="row__figure" aria-hidden="true">{project.heroFigure}</span>
+</article>
+
+<style>
+  .row {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1.5rem;
+    align-items: start;
+    padding-block: clamp(2rem, 5vw, 3.25rem);
+    border-top: 1px solid var(--line);
+    transition: border-color var(--t-slow) var(--ease);
+  }
+
+  .row:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .row:hover {
+    border-top-color: var(--line-strong);
+  }
+
+  /* Whole-row hover target, matching the stretched link area. */
+  .row:has(.row__link:hover),
+  .row:has(.row__link:focus-visible) {
+    border-top-color: var(--line-strong);
+  }
+
+  .row:has(.row__link:hover) .row__figure,
+  .row:has(.row__link:focus-visible) .row__figure {
+    opacity: 1;
+    transform: none;
+  }
+
+  .row__index {
+    padding-top: 0.4rem;
+    color: var(--label);
+  }
+
+  .row__body {
+    min-width: 0;
+  }
+
+  .row__title {
+    font-size: clamp(1.75rem, 4.5vw, 3.25rem);
+    line-height: 1.05;
+  }
+
+  .row__link {
+    display: inline-block;
+  }
+
+  /*
+   * The whole row is the tap target on every device.
+   *
+   * A stretched pseudo-element on the single real <a> makes the entire row
+   * clickable while keeping exactly one link per row for assistive tech, and
+   * satisfying the 44px minimum tap target on touch.
+   */
+  .row__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  .row__name {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    background-position: 100% 100%;
+    background-size: 0% 1px;
+    transition: background-size var(--t-slow) var(--ease);
+    color: var(--text);
+  }
+
+  .row__link:hover .row__name,
+  .row__link:focus-visible .row__name {
+    background-position: 0 100%;
+    background-size: 100% 1px;
+  }
+
+  .row__summary {
+    margin-top: 0.75rem;
+    max-width: 54ch;
+    color: var(--text-muted);
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .row__tags {
+    margin-top: 1.1rem;
+  }
+
+  .row__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin-top: 1.25rem;
+  }
+
+  .row__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+  }
+
+  .row__status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex: none;
+  }
+
+  .row__count {
+    color: var(--label);
+  }
+
+  /* Oversized typographic figure, revealed on hover. Purely decorative:
+     hidden from assistive tech, and it never carries information the text
+     does not already carry. */
+  .row__figure {
+    position: absolute;
+    right: 0;
+    bottom: 0.35rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(3rem, 11vw, 8rem);
+    line-height: 0.8;
+    letter-spacing: -0.02em;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--line);
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+      opacity var(--t-slow) var(--ease),
+      transform var(--t-slow) var(--ease);
+  }
+
+  /* The status/meta line must stay above the stretched link overlay. */
+  .row__meta,
+  .row__tags {
+    position: relative;
+    z-index: 2;
+  }
+
+  .row--full .row__title {
+    font-size: clamp(2rem, 5.5vw, 4rem);
+  }
+
+  .row--full .row__summary {
+    font-size: 1.02rem;
+  }
+
+  @media (min-width: 60rem) {
+    .row {
+      grid-template-columns: 5rem 1fr;
+      gap: 0.5rem 2rem;
+    }
+  }
+
+  @media (max-width: 47.99rem) {
+    /* Hide the decorative figure: at 360px it would crowd the name. */
+    .row__figure {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .row__figure {
+      transition: none;
+    }
+  }
+</style>

@@ -1,0 +1,298 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import SectionHead from '../components/SectionHead.astro';
+import { META } from '../data/meta';
+import { LEARNING_AREAS, LEARNING_RELATIONSHIPS } from '../data/site';
+import type { Crumb } from '../lib/schema';
+
+const crumbs: Crumb[] = [
+  { name: 'Home', href: '/' },
+  { name: 'Learning', href: '/learning/' },
+];
+
+const areas = LEARNING_AREAS;
+---
+
+<BaseLayout meta={META.learning} graph={{ withWebsite: true, crumbs }}>
+  <div class="container">
+    <div class="page-top">
+      <Breadcrumbs crumbs={crumbs} />
+      <h1 class="page-title" data-reveal>Learning</h1>
+      <p class="page-lede measure-narrow" data-reveal>
+        This is a map of what I'm studying, not a list of credentials. It is meant to
+        change as I go.
+      </p>
+      <p class="page-note measure-narrow" data-reveal>
+        Nothing here is claimed as certified or finished. Where a topic is simply open, it
+        says open.
+      </p>
+    </div>
+  </div>
+
+  <section class="section" aria-labelledby="map-title">
+    <span class="bg-text" aria-hidden="true">LEARN</span>
+    <div class="container">
+      <SectionHead
+        marker="// 01"
+        title="How the areas connect"
+        id="map-title"
+        lede="These subjects are not eight separate tracks. Most of them only make sense next to each other."
+      />
+
+      <!-- Relationships exist as a plain readable list first, so no
+           information depends on the visualisation. -->
+      <ul class="map-list" aria-label="Relationships between learning areas" data-reveal>
+        {
+          LEARNING_RELATIONSHIPS.map((rel) => (
+            <li class="map-list__row">
+              <span class="map-list__from">{rel.from}</span>
+              <span class="map-list__arrow" aria-hidden="true">
+                &#8594;
+              </span>
+              <span class="map-list__to">
+                <span class="sr-only">connects to </span>
+                {rel.to.join(', ')}
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section class="section rule" aria-labelledby="areas-title">
+    <div class="container">
+      <SectionHead marker="// 02" title="Area by area" id="areas-title" />
+
+      <div class="areas">
+        {
+          areas.map((area, i) => (
+            <article class="area" id={area.id} aria-labelledby={`${area.id}-title`} data-reveal>
+              <header class="area__head">
+                <p class="micro micro--tight" aria-hidden="true">
+                  {String(i + 1).padStart(2, '0')}
+                </p>
+                {/* h2 under the page h1: no skipped levels. */}
+                <h2 class="area__title" id={`${area.id}-title`}>
+                  {area.title}
+                </h2>
+              </header>
+
+              <div class="area__body prose">
+                <h3 class="area__label">Why it interests me</h3>
+                <p>{area.why}</p>
+
+                <h3 class="area__label">What I'm exploring right now</h3>
+                {area.exploring ? (
+                  <p>{area.exploring}</p>
+                ) : (
+                  <div class="todo-block">
+                    <p class="micro">To fill in</p>
+                    <p>
+                      Not written down yet. This section stays empty until there is something
+                      real to put in it.
+                    </p>
+                  </div>
+                )}
+
+                <h3 class="area__label">What I've built or practiced</h3>
+                {area.built.length > 0 ? (
+                  <ul class="area__built">
+                    {area.built.map((b) => (
+                      <li>
+                        {b.href ? <a class="link" href={b.href}>{b.text}</a> : b.text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div class="todo-block">
+                    <p class="micro">To fill in</p>
+                    <p>
+                      Nothing here yet. Only real work gets listed on this page.
+                    </p>
+                  </div>
+                )}
+
+                <h3 class="area__label">Connects to</h3>
+                <p class="area__related">{area.related.join(' · ')}</p>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section rule" aria-labelledby="principle-title">
+    <div class="container">
+      <SectionHead marker="// 03" title="The principle" id="principle-title" />
+      <div class="prose measure-narrow" data-reveal>
+        <p>
+          Understanding how systems break is the fastest way to understand how they work.
+          That holds for a chess rules engine, for a permissions policy in a database, and
+          for a renderer drawing a 3D scene.
+        </p>
+        <p>
+          So the work follows the same shape every time: build something real, read the
+          source, find the part that surprises you.
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-top {
+    padding-top: clamp(2.5rem, 8vw, 5rem);
+  }
+
+  .page-title {
+    margin-top: 1.25rem;
+    font-size: clamp(2.5rem, 9vw, 7rem);
+    color: var(--accent);
+  }
+
+  .page-lede {
+    margin-top: 1.5rem;
+    font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+    font-weight: 300;
+    line-height: 1.6;
+    color: var(--text-soft);
+  }
+
+  .page-note {
+    margin-top: 1.25rem;
+    padding-left: 1.15rem;
+    border-left: 2px solid var(--line-strong);
+    font-size: 0.98rem;
+    line-height: 1.65;
+    color: var(--text-muted);
+  }
+
+  .map-list {
+    position: relative;
+    z-index: 1;
+    list-style: none;
+    border-top: 1px solid var(--line);
+    max-width: 46rem;
+  }
+
+  .map-list__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+    padding: 1.05rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .map-list__from {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .map-list__arrow {
+    color: var(--label);
+    font-family: var(--font-display);
+  }
+
+  .map-list__to {
+    font-size: 1rem;
+    color: var(--text-muted);
+  }
+
+  .areas {
+    display: grid;
+    gap: clamp(3rem, 7vw, 5rem);
+  }
+
+  .area {
+    display: grid;
+    gap: 1.25rem;
+    padding-top: clamp(2rem, 5vw, 3rem);
+    border-top: 1px solid var(--line);
+    scroll-margin-top: 7rem;
+  }
+
+  @media (min-width: 60rem) {
+    .area {
+      grid-template-columns: minmax(12rem, 18rem) 1fr;
+      gap: 2.5rem 3rem;
+      align-items: start;
+    }
+  }
+
+  .area__head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+  }
+
+  @media (min-width: 60rem) {
+    .area__head {
+      position: sticky;
+      top: 7rem;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+  }
+
+  .area__title {
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    color: var(--accent);
+  }
+
+  .area__label {
+    margin-bottom: 0.6rem;
+    font-size: 0.74rem;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    color: var(--label);
+  }
+
+  /* Spacing between the labelled subsections inside an area. */
+  .area__body > * + * {
+    margin-top: 0.7rem;
+  }
+
+  .area__body > .area__label {
+    margin-top: 2rem;
+  }
+
+  .area__body > .area__label:first-child {
+    margin-top: 0;
+  }
+
+  .area__built {
+    list-style: none;
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .area__built li {
+    position: relative;
+    padding-left: 1.5rem;
+    font-size: 1.02rem;
+    color: var(--text);
+  }
+
+  .area__built li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--label);
+  }
+
+  .area__related {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+</style>

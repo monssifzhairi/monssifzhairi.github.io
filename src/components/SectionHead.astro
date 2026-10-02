@@ -1,0 +1,39 @@
+---
+type Props = {
+  /** Small marker, e.g. "// 02". Decorative but reads as a section label. */
+  marker: string;
+  title: string;
+  /** Heading id, so the section can be referenced. */
+  id?: string;
+  /** Optional supporting line. */
+  lede?: string;
+};
+
+const { marker, title, id, lede } = Astro.props;
+const headingId = id ?? title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+---
+
+<div class="sec-head">
+  <p class="micro" aria-hidden="true">{marker}</p>
+  <h2 id={headingId} class="sec-head__title" data-reveal>{title}</h2>
+  {lede && <p class="sec-head__lede" data-reveal>{lede}</p>}
+</div>
+
+<style>
+  .sec-head {
+    margin-bottom: clamp(2rem, 5vw, 3.5rem);
+  }
+
+  .sec-head__title {
+    margin-top: 0.85rem;
+  }
+
+  .sec-head__lede {
+    margin-top: 1.25rem;
+    max-width: var(--measure);
+    color: var(--text-soft);
+    font-size: 1.08rem;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+</style>

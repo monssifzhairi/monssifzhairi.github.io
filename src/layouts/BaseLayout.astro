@@ -1,0 +1,163 @@
+---
+import '@fontsource/oswald/400.css';
+import '@fontsource/oswald/500.css';
+import '@fontsource/oswald/600.css';
+import '@fontsource-variable/inter';
+import '../styles/global.css';
+
+import { absolute } from '../config';
+import type { PageMeta } from '../data/meta';
+import { SITE } from '../data/site';
+import { serializeGraph, type GraphInput } from '../lib/schema';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+
+type Props = {
+  meta: PageMeta;
+  /** Connected JSON-LD graph for this page. */
+  graph?: GraphInput;
+  /** Extra head markup, e.g. preload for the LCP image. */
+  head?: string;
+  /**
+   * Emit the page's absolute URL as <link rel="canonical"> and og:url.
+   * Defaults to true. Set to false on the 404 page: GitHub serves it at
+   * arbitrary unknown paths, so declaring a single URL would name a page
+   * that does not exist. The 404 page is noindex.
+   */
+  canonical?: boolean;
+};
+
+const { meta, graph = {}, head = '', canonical: withCanonical = true } = Astro.props;
+
+const canonicalUrl = absolute(Astro.url.pathname);
+const ogImage = absolute(meta.ogImage);
+
+/**
+ * One canonical URL per page, absolute, https, no www, trailing slash —
+ * identical to the form used by internal links, the sitemap and JSON-LD.
+ */
+const robots = meta.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large';
+
+const jsonLd = serializeGraph(graph);
+---
+
+<!doctype html>
+<html lang={SITE.locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <title>{meta.title}</title>
+    <meta name="description" content={meta.description} />
+    <meta name="author" content={SITE.name} />
+    {
+      withCanonical && <link rel="canonical" href={canonicalUrl} />
+    }
+    <meta name="robots" content={robots} />
+    <meta name="theme-color" content={SITE.themeColor} />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content={meta.ogType} />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:locale" content="en" />
+    <meta property="og:title" content={meta.title} />
+    <meta property="og:description" content={meta.description} />
+    {
+      withCanonical && <meta property="og:url" content={canonicalUrl} />
+    }
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:alt" content={meta.ogImageAlt} />
+    {
+      meta.ogType === 'profile' && (
+        <>
+          <meta property="profile:first_name" content={SITE.givenName} />
+          <meta property="profile:last_name" content={SITE.familyName} />
+          <meta property="profile:username" content={SITE.githubHandle} />
+        </>
+      )
+    }
+
+    <!-- Twitter/X. No twitter:site / twitter:creator — no account exists. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={meta.title} />
+    <meta name="twitter:description" content={meta.description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={meta.ogImageAlt} />
+
+    <!-- Icons. Crawlable: robots.txt blocks nothing. -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-48.png" sizes="48x48" type="image/png" />
+    <link rel="icon" href="/favicon-192.png" sizes="192x192" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- The single default social image, preloaded so it is available to the
+         first social scrape. It is the site's own wordmark, not project imagery. -->
+    <link rel="preload" as="image" href={ogImage} fetchpriority="high" />
+
+    <script type="application/ld+json" is:inline set:html={jsonLd} />
+
+    {head && <Fragment set:html={head} />}
+  </head>
+
+  <body>
+    <div class="film-texture" aria-hidden="true"></div>
+
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <Header />
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <Footer />
+  </body>
+</html>
+
+<style>
+  main {
+    position: relative;
+    z-index: 2;
+    /* Clear the fixed header. */
+    padding-top: 4.5rem;
+  }
+</style>
+
+{/**
+ * Tiny progressive enhancement: marks the document as JS-capable, then opts
+ * elements into the reveal animation. Because the revealed state is the CSS
+ * default, a failure here leaves the page fully visible.
+ */}
+<script is:inline>
+  document.documentElement.classList.add('js');
+</script>
+
+<script>
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  const items = document.querySelectorAll<HTMLElement>('[data-reveal]');
+
+  if (reduceMotion.matches || !('IntersectionObserver' in window)) {
+    // Fully static, fully readable. Nothing to do.
+  } else {
+    items.forEach((el) => el.classList.add('js-reveal'));
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0.08 },
+    );
+
+    items.forEach((el) => io.observe(el));
+  }
+</script>

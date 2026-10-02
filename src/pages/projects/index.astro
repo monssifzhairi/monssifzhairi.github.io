@@ -1,0 +1,93 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import SectionHead from '../../components/SectionHead.astro';
+import ProjectRow from '../../components/ProjectRow.astro';
+import { META } from '../../data/meta';
+import { PROJECTS } from '../../data/projects';
+import { SITE } from '../../data/site';
+
+const crumbs = [
+  { name: 'Home', href: '/' },
+  { name: 'Projects', href: '/projects/' },
+];
+---
+
+<BaseLayout meta={META.projects} graph={{ withWebsite: true, crumbs }}>
+  <div class="container">
+    <div class="page-top">
+      <Breadcrumbs crumbs={crumbs} />
+      <h1 class="page-title" data-reveal>Projects by {SITE.name}</h1>
+      <p class="page-lede measure-narrow" data-reveal>
+        Four projects, each with an honest status. Some are finished, some are not.
+      </p>
+    </div>
+  </div>
+
+  <section class="section" aria-labelledby="index-title">
+    <span class="bg-text" aria-hidden="true">WORK</span>
+    <div class="container">
+      <h2 class="sr-only" id="index-title">Project index</h2>
+
+      <div class="project-list">
+        {
+          PROJECTS.map((p, i) => (
+            <ProjectRow
+              project={p}
+              position={i + 1}
+              total={PROJECTS.length}
+              variant="full"
+            />
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section rule" aria-labelledby="stack-title">
+    <div class="container">
+      <SectionHead
+        marker="// 01"
+        title="On status labels"
+        id="stack-title"
+      />
+      <div class="prose measure-narrow" data-reveal>
+        <p>
+          Each project carries the label it has actually earned. <strong>In progress</strong>{' '}
+          means it is still being built. <strong>Prototype</strong> means the idea is
+          demonstrable but not finished. Nothing on this site claims to be more finished
+          than it is.
+        </p>
+        <p>
+          Where a project's stack or status has not been confirmed yet, it is marked as
+          such rather than filled in with a guess.
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-top {
+    padding-top: clamp(2.5rem, 8vw, 5rem);
+  }
+
+  .page-title {
+    margin-top: 1.25rem;
+    font-size: clamp(2.25rem, 6.5vw, 5rem);
+    color: var(--accent);
+  }
+
+  .page-lede {
+    margin-top: 1.5rem;
+    font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+    font-weight: 300;
+    line-height: 1.65;
+    color: var(--text-soft);
+  }
+
+  .project-list {
+    position: relative;
+    z-index: 1;
+  }
+</style>

@@ -1,0 +1,175 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import SectionHead from '../components/SectionHead.astro';
+import { META } from '../data/meta';
+import { SITE } from '../data/site';
+import type { Crumb } from '../lib/schema';
+
+const crumbs: Crumb[] = [
+  { name: 'Home', href: '/' },
+  { name: 'Contact', href: '/contact/' },
+];
+---
+
+<BaseLayout meta={META.contact} graph={{ withWebsite: true, crumbs }}>
+  <div class="container">
+    <div class="page-top">
+      <Breadcrumbs crumbs={crumbs} />
+      <h1 class="page-title" data-reveal>Contact {SITE.name}</h1>
+      <p class="page-lede measure-narrow" data-reveal>
+        Open to collaboration, freelance work and interesting problems. If you have
+        something specific in mind, an issue or a question about a project, GitHub is the
+        place to start.
+      </p>
+    </div>
+  </div>
+
+  <section class="section" aria-labelledby="reach-title">
+    <span class="bg-text" aria-hidden="true">HELLO</span>
+    <div class="container">
+      <SectionHead marker="// 01" title="How to reach me" id="reach-title" />
+
+      <dl class="facts measure-narrow" data-reveal>
+        <div class="facts__row">
+          <dt class="fact-label">GitHub</dt>
+          <dd class="fact-value">
+            <a
+              class="link"
+              href={SITE.github}
+              target="_blank"
+              rel="noopener noreferrer"
+            >github.com/{SITE.githubHandle}<span class="sr-only"> — opens in a new tab</span></a>
+          </dd>
+        </div>
+        <div class="facts__row">
+          <dt class="fact-label">Open to</dt>
+          <dd class="fact-value">Collaboration, freelance work, interesting problems</dd>
+        </div>
+        <div class="facts__row">
+          <dt class="fact-label">Best way in</dt>
+          <dd class="fact-value">Open an issue, or send a message on GitHub</dd>
+        </div>
+      </dl>
+
+      <div class="cta" data-reveal>
+        <a
+          class="btn btn--primary"
+          href={SITE.github}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub<span class="sr-only"> — opens in a new tab</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+<section class="section rule" aria-labelledby="projects-title">
+    <div class="container">
+      <SectionHead
+        marker="// 02"
+        title="Talking about something specific?"
+        id="projects-title"
+      />
+      <div class="prose measure-narrow" data-reveal>
+        <p>
+          If it's about the work, the fastest route is the relevant case study — each one
+          links to its source.
+        </p>
+        <ul class="link-list">
+          <li><a class="link" href="/projects/mr-chess/">MR-CHESS</a></li>
+          <li><a class="link" href="/projects/monssif-fit/">MONSSIF FIT</a></li>
+          <li><a class="link" href="/projects/nike-d-line/">NIKE D-LINE</a></li>
+          <li><a class="link" href="/projects/promesatec/">PROMESATEC</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section rule" aria-labelledby="how-title">
+    <div class="container">
+      <SectionHead marker="// 03" title="What helps" id="how-title" />
+      <div class="prose measure-narrow" data-reveal>
+        <p>
+          A message that names the project and the specific question gets an answer far
+          faster than a general one. So does a link to something you've actually looked
+          at — code, an article, a video, a bug.
+        </p>
+        <p>
+          If the question is about a project that isn't on this site yet, say so plainly
+          and I'll answer what's real about it rather than overselling it.
+        </p>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-top {
+    padding-top: clamp(2.5rem, 8vw, 5rem);
+  }
+
+  .page-title {
+    margin-top: 1.25rem;
+    font-size: clamp(2.25rem, 7vw, 5.5rem);
+    color: var(--accent);
+  }
+
+  .page-lede {
+    margin-top: 1.5rem;
+    font-size: clamp(1.05rem, 2.4vw, 1.3rem);
+    font-weight: 300;
+    line-height: 1.65;
+    color: var(--text-soft);
+  }
+
+  .facts {
+    position: relative;
+    z-index: 1;
+  }
+
+  .facts__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1.5rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .facts__row:first-child {
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .facts dd {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text);
+  }
+
+  .cta {
+    position: relative;
+    z-index: 1;
+    margin-top: 2.5rem;
+  }
+
+  .link-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.75rem;
+    margin-top: 1rem;
+    list-style: none;
+  }
+
+  .link-list li {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+</style>

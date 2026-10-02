@@ -1,0 +1,495 @@
+---
+import { PRIMARY_NAV, SITE } from '../data/site';
+
+/**
+ * Fixed minimal header. Left: wordmark "MZ" with the small
+ * MONSSIF // DIGITAL LAB label. Right: About · Projects · Learning · Contact.
+ * Active page indicated with aria-current, not colour alone.
+ */
+const current = Astro.url.pathname;
+
+function isActive(href: string) {
+  if (href === '/') return current === '/';
+  return current === href || current.startsWith(href);
+}
+---
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="wordmark" href="/" aria-label={`${SITE.name} — home`}>
+      <span class="wordmark__mono" aria-hidden="true">MZ</span>
+      <span class="wordmark__lab micro micro--tight" aria-hidden="true">
+        {SITE.labLabel}
+      </span>
+    </a>
+
+    <nav class="desktop-nav" aria-label="Primary">
+      <ul>
+        {
+          PRIMARY_NAV.map((item) => (
+            <li>
+              <a
+                href={item.href}
+                class="desktop-nav__link"
+                aria-current={isActive(item.href) ? 'page' : undefined}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <button
+      type="button"
+      class="menu-toggle"
+      id="menu-toggle"
+      aria-expanded="false"
+      aria-controls="mobile-nav"
+    >
+      <span class="menu-toggle__bars" aria-hidden="true">
+        <span></span><span></span>
+      </span>
+      <span class="sr-only">Open menu</span>
+    </button>
+  </div>
+</header>
+
+<!-- Full-screen overlay navigation. Focus-trapped, Escape to close,
+     closable with the visible Close button and by clicking a link. -->
+<div class="mobile-nav" id="mobile-nav" hidden>
+  <div class="mobile-nav__panel">
+    <div class="mobile-nav__top">
+      <p class="micro">{SITE.labLabel}</p>
+      <button type="button" class="mobile-nav__close" id="menu-close">
+        <span aria-hidden="true">&times;</span>
+        <span class="sr-only">Close menu</span>
+      </button>
+    </div>
+
+    <nav aria-label="Mobile">
+      <ul class="mobile-nav__list">
+        {
+          PRIMARY_NAV.map((item, i) => (
+            <li style={`--i:${i}`}>
+              <a
+                href={item.href}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+              >
+                <span class="mobile-nav__index micro micro--tight" aria-hidden="true">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span class="mobile-nav__label">{item.label}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="mobile-nav__foot">
+      <a href={SITE.github} target="_blank" rel="noopener noreferrer">
+        GitHub<span class="sr-only"> — opens in a new tab</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .site-header__inner {
+    max-width: var(--max-w);
+    margin-inline: auto;
+    padding: 0.9rem var(--gutter);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+
+  .wordmark {
+    display: flex;
+    align-items: baseline;
+    gap: 0.85rem;
+    min-height: 44px;
+    padding-block: 0.5rem;
+  }
+
+  .wordmark__mono {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .wordmark__lab {
+    display: none;
+    color: var(--label);
+  }
+
+  .desktop-nav ul {
+    display: flex;
+    gap: clamp(1.25rem, 3vw, 2.5rem);
+    list-style: none;
+  }
+
+  .desktop-nav__link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    transition: color var(--t-base) ease;
+  }
+
+  .desktop-nav__link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0.55rem;
+    width: 100%;
+    height: 1px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform var(--t-slow) var(--ease);
+  }
+
+  .desktop-nav__link:hover,
+  .desktop-nav__link:focus-visible {
+    color: var(--accent);
+  }
+
+  .desktop-nav__link:hover::after,
+  .desktop-nav__link:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* Active page: underline plus aria-current="page". Not colour alone. */
+  .desktop-nav__link[aria-current='page'] {
+    color: var(--accent);
+  }
+
+  .desktop-nav__link[aria-current='page']::after {
+    transform: scaleX(1);
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-right: -8px;
+  }
+
+  .menu-toggle__bars {
+    display: block;
+    width: 22px;
+    height: 12px;
+    position: relative;
+  }
+
+  .menu-toggle__bars span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 1.5px;
+    background: var(--accent);
+    transition: transform var(--t-base) var(--ease);
+  }
+
+  .menu-toggle__bars span:first-child {
+    top: 2px;
+  }
+
+  .menu-toggle__bars span:last-child {
+    bottom: 2px;
+  }
+
+  .menu-toggle[aria-expanded='true'] .menu-toggle__bars span:first-child {
+    transform: translateY(3.25px) rotate(45deg);
+  }
+
+  .menu-toggle[aria-expanded='true'] .menu-toggle__bars span:last-child {
+    transform: translateY(-3.25px) rotate(-45deg);
+  }
+
+  /* ---- overlay ---- */
+  .mobile-nav {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: var(--bg-deep);
+    opacity: 0;
+    transition: opacity var(--t-mid) var(--ease);
+  }
+
+  .mobile-nav[data-open='true'] {
+    opacity: 1;
+  }
+
+  .mobile-nav__panel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem var(--gutter) 2.5rem;
+    max-width: var(--max-w);
+    margin-inline: auto;
+    transform: translateY(-12px);
+    transition: transform var(--t-slow) var(--ease);
+  }
+
+  .mobile-nav[data-open='true'] .mobile-nav__panel {
+    transform: none;
+  }
+
+  .mobile-nav__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 56px;
+  }
+
+  .mobile-nav__close {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--accent);
+    margin-right: -8px;
+  }
+
+  .mobile-nav__list {
+    list-style: none;
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+
+  .mobile-nav__list a {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    min-height: 56px;
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--line-soft);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.75rem, 9vw, 2.75rem);
+    text-transform: uppercase;
+    line-height: 1.1;
+    color: var(--text);
+    transition: color var(--t-base) ease, transform var(--t-slow) var(--ease);
+  }
+
+  .mobile-nav__list a:active {
+    transform: translateX(6px);
+  }
+
+  .mobile-nav__list a[aria-current='page'] {
+    color: var(--accent);
+  }
+
+  .mobile-nav__index {
+    color: var(--label);
+  }
+
+  .mobile-nav__foot {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .mobile-nav__foot a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  @media (min-width: 56rem) {
+    .desktop-nav {
+      display: block;
+    }
+
+    .menu-toggle {
+      display: none;
+    }
+
+    .mobile-nav {
+      display: none;
+    }
+
+    .wordmark__lab {
+      display: inline;
+    }
+  }
+
+  @media (max-width: 55.99rem) {
+    .desktop-nav {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-nav,
+    .mobile-nav__panel {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * Mobile overlay navigation.
+   * - Focus moves into the panel on open and is trapped while open.
+   * - Escape closes it and returns focus to the toggle.
+   * - Closing restores the toggle's accessible name.
+   * - Resizing to the desktop breakpoint while open closes it, so the
+   *   hidden overlay can never keep focus.
+   */
+  const toggle = document.getElementById('menu-toggle') as HTMLButtonElement | null;
+  const overlay = document.getElementById('mobile-nav') as HTMLElement | null;
+  const closeBtn = document.getElementById('menu-close') as HTMLButtonElement | null;
+
+  const FOCUSABLE =
+    'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  /**
+   * Focusable elements inside the overlay.
+   *
+   * The overlay's `hidden` attribute is already removed while it is open, so
+   * every match is genuinely reachable. Deliberately does NOT use
+   * offsetParent/visibility for that test: those depend on layout, which makes
+   * the trap silently no-op in environments without layout and is a fragile
+   * thing to depend on for correctness.
+   */
+  function focusable(): HTMLElement[] {
+    if (!overlay) return [];
+    return Array.from(overlay.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !el.hidden);
+  }
+
+  let lastFocused: HTMLElement | null = null;
+
+  function open() {
+    if (!overlay || !toggle) return;
+    lastFocused = document.activeElement as HTMLElement;
+    overlay.hidden = false;
+    // Force a frame so the opacity/transform transition actually runs.
+    void overlay.offsetWidth;
+    overlay.setAttribute('data-open', 'true');
+    document.documentElement.classList.add('no-scroll');
+    toggle.setAttribute('aria-expanded', 'true');
+    toggle.querySelector('.sr-only')!.textContent = 'Close menu';
+    closeBtn?.focus();
+    document.addEventListener('keydown', onKeydown, true);
+  }
+
+  function close(returnFocus = true) {
+    if (!overlay || !toggle) return;
+    overlay.setAttribute('data-open', 'false');
+    document.documentElement.classList.remove('no-scroll');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.querySelector('.sr-only')!.textContent = 'Open menu';
+    document.removeEventListener('keydown', onKeydown, true);
+
+    const finish = () => {
+      overlay.hidden = true;
+    };
+    if (reduceMotion.matches) finish();
+    else window.setTimeout(finish, 300);
+
+    // Focus returns to whatever opened the menu. `document.body` is not a useful
+    // target (it only counts when the menu was opened without a focused
+    // trigger), so fall back to the toggle, which always owns the expanded
+    // state and is what a keyboard user expects to land back on.
+    if (returnFocus && toggle) {
+      // Narrowed inline: TypeScript cannot follow `lastFocused` through an
+      // intermediate boolean.
+      const target =
+        lastFocused &&
+        lastFocused.isConnected &&
+        lastFocused !== document.body &&
+        lastFocused !== document.documentElement &&
+        typeof lastFocused.focus === 'function'
+          ? lastFocused
+          : toggle;
+      target.focus();
+    }
+  }
+
+  function onKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+
+    const items = focusable();
+    if (items.length === 0) return;
+    const first = items[0]!;
+    const last = items[items.length - 1]!;
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  toggle?.addEventListener('click', () => {
+    if (overlay?.getAttribute('data-open') === 'true') close();
+    else open();
+  });
+
+  closeBtn?.addEventListener('click', () => close());
+
+  // Following a link inside the overlay closes it (SPA-free navigation still
+  // benefits, e.g. back/forward cache restores).
+  overlay?.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('a[href]')) close(false);
+  });
+
+  // Never leave the overlay open (and focus-trapped) on a wide viewport.
+  const wide = window.matchMedia('(min-width: 56rem)');
+  wide.addEventListener('change', (e) => {
+    if (e.matches && overlay?.getAttribute('data-open') === 'true') close(false);
+  });
+
+  // The overlay is hidden by default; if the viewport is already wide the
+  // markup is inert anyway. Escape must also work when focus escaped the trap.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay?.getAttribute('data-open') === 'true') close();
+  });
+</script>

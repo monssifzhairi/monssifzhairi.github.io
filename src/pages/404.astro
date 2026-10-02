@@ -1,0 +1,118 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { META } from '../data/meta';
+import { PRIMARY_NAV } from '../data/site';
+
+/**
+ * 404.
+ *
+ * Emitted as dist/404.html. GitHub Pages serves this file for unknown paths
+ * with a real 404 status, so it is a genuine not-found response rather than a
+ * soft-404 or an SPA catch-all returning 200.
+ *
+ * noindex, and no BreadcrumbList (it is not part of the site hierarchy).
+ */
+---
+
+<BaseLayout meta={META.notFound} graph={{ withWebsite: true }} canonical={false}>
+  <section class="nf">
+    <span class="bg-text" aria-hidden="true">404</span>
+    <div class="container nf__inner">
+      <p class="micro">// error</p>
+      <h1 class="nf__title">Page not found</h1>
+      <p class="nf__lede measure-narrow">
+        That URL doesn't exist on this site. Nothing is broken on your end — the page
+        just isn't here.
+      </p>
+
+      <nav class="nf__nav" aria-label="Site sections">
+        <p class="micro">Try one of these</p>
+        <ul>
+          {
+            PRIMARY_NAV.map((item) => (
+              <li>
+                <a href={item.href}>{item.label}</a>
+              </li>
+            ))
+          }
+          <li><a href="/projects/mr-chess/">MR-CHESS</a></li>
+          <li><a href="/projects/monssif-fit/">MONSSIF FIT</a></li>
+          <li><a href="/projects/nike-d-line/">NIKE D-LINE</a></li>
+          <li><a href="/projects/promesatec/">PROMESATEC</a></li>
+        </ul>
+      </nav>
+
+      <p class="nf__foot">
+        <a class="btn btn--small" href="/">Back to the homepage</a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .nf {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: calc(100vh - 4.5rem);
+    padding-block: clamp(4rem, 12vh, 8rem);
+    overflow: hidden;
+  }
+
+  .nf__inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  .nf__title {
+    margin-top: 1rem;
+    font-size: clamp(2.5rem, 9vw, 6.5rem);
+    color: var(--accent);
+  }
+
+  .nf__lede {
+    margin-top: 1.75rem;
+    font-size: clamp(1.05rem, 2.3vw, 1.25rem);
+    font-weight: 300;
+    line-height: 1.65;
+    color: var(--text-soft);
+  }
+
+  .nf__nav {
+    margin-top: clamp(2.5rem, 6vw, 4rem);
+    padding-top: 2rem;
+    border-top: 1px solid var(--line);
+    max-width: 42rem;
+  }
+
+  .nf__nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin-top: 1rem;
+    list-style: none;
+  }
+
+  .nf__nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    transition: color var(--t-base) ease, transform var(--t-slow) var(--ease);
+  }
+
+  .nf__nav a:hover,
+  .nf__nav a:focus-visible {
+    color: var(--accent);
+    transform: translateX(4px);
+  }
+
+  .nf__foot {
+    margin-top: clamp(2.5rem, 6vw, 4rem);
+  }
+</style>

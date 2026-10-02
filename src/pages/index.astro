@@ -1,0 +1,283 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SectionHead from '../components/SectionHead.astro';
+import ProjectRow from '../components/ProjectRow.astro';
+import Ticker from '../components/Ticker.astro';
+import { META } from '../data/meta';
+import { PROJECTS } from '../data/projects';
+import { SITE } from '../data/site';
+
+/**
+ * Homepage.
+ *
+ * H1 is the visible name. WebSite + Person JSON-LD live here only.
+ * Teasers are deliberately shorter and differently worded than the inner
+ * pages so no text is duplicated between pages (blueprint §4).
+ */
+
+// Learning teaser shows a compact subset; the full set lives on /learning/.
+const LEARNING_TEASER = [
+  'Cybersecurity',
+  'Linux',
+  'Networking',
+  'Python',
+  'Mathematics',
+  'Mathematical logic',
+  'AI',
+  '3D/WebGL',
+];
+---
+
+<BaseLayout meta={META.home} graph={{ withWebsite: true }}>
+  <!-- 1. Hero — H1 is exactly the visible name -->
+  <section class="hero" aria-labelledby="hero-title">
+    <span class="bg-text hero__bg" aria-hidden="true">MZ</span>
+
+    <div class="container hero__inner">
+      <p class="hero__lab micro" aria-hidden="true">{SITE.labLabel}</p>
+
+      <h1 id="hero-title" class="hero__title" data-reveal>{SITE.name}</h1>
+
+      <p class="hero__positioning" data-reveal>{SITE.positioning}</p>
+
+      <p class="hero__statement measure-narrow" data-reveal>
+        I build things for the web, then take them apart to see why they work.
+      </p>
+
+      <div class="hero__actions" data-reveal>
+        <a class="btn btn--primary" href="/projects/">Projects</a>
+        <a
+          class="btn"
+          href={SITE.github}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub<span class="sr-only"> — opens in a new tab</span>
+        </a>
+      </div>
+    </div>
+
+    <p class="hero__nav-hint micro micro--tight">
+      <a href="/about/">About</a><span aria-hidden="true"> · </span
+      ><a href="/projects/">Projects</a><span aria-hidden="true"> · </span
+      ><a href="/learning/">Learning</a><span aria-hidden="true"> · </span
+      ><a href="/contact/">Contact</a>
+    </p>
+  </section>
+
+  <!-- 2. Signal strip. Decorative, pausable, static under reduced motion. -->
+  <Ticker />
+
+  <!-- 3. Selected work -->
+  <section class="section" aria-labelledby="work-title">
+    <span class="bg-text" aria-hidden="true">WORK</span>
+    <div class="container">
+      <SectionHead marker="// 01" title="Selected work" id="work-title" />
+
+      <div class="work-list">
+        {
+          PROJECTS.map((p, i) => (
+            <ProjectRow project={p} position={i + 1} total={PROJECTS.length} />
+          ))
+        }
+      </div>
+
+      <p class="work-more">
+        <a class="link" href="/projects/">All projects</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- 4. About teaser -->
+  <section class="section rule" aria-labelledby="about-teaser-title">
+    <div class="container">
+      <SectionHead marker="// 02" title="About" id="about-teaser-title" />
+
+      <div class="prose measure-narrow" data-reveal>
+        <p>
+          Most of my work sits where a product meets the machinery underneath it. I write
+          interfaces, then the rules that decide what those interfaces are allowed to do.
+        </p>
+        <p>
+          The rest of the time is spent on the systems side, reading how things break.
+        </p>
+      </div>
+
+      <p class="work-more">
+        <a class="link" href="/about/">More about me</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- 5. Learning teaser -->
+  <section class="section rule" aria-labelledby="learning-teaser-title">
+    <div class="container">
+      <SectionHead
+        marker="// 03"
+        title="What I'm learning"
+        id="learning-teaser-title"
+      />
+
+      <ul class="topic-list measure-narrow" data-reveal>
+        {LEARNING_TEASER.map((t) => <li>{t}</li>)}
+      </ul>
+
+      <p class="work-more">
+        <a class="link" href="/learning/">The learning map</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- 6. Contact strip -->
+  <section class="section rule" aria-labelledby="contact-teaser-title">
+    <div class="container">
+      <SectionHead marker="// 04" title="Contact" id="contact-teaser-title" />
+
+      <p class="measure-narrow" data-reveal>
+        Open to collaboration and to problems worth solving. GitHub is the fastest way to
+        reach me.
+      </p>
+
+      <div class="contact-actions" data-reveal>
+        <a
+          class="btn btn--primary"
+          href={SITE.github}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GitHub<span class="sr-only"> — opens in a new tab</span>
+        </a>
+        <a class="btn btn--small" href="/contact/">Contact page</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: min(88vh, 54rem);
+    padding-block: clamp(4rem, 14vh, 9rem) clamp(2.5rem, 6vh, 4rem);
+    overflow: hidden;
+  }
+
+  .hero__bg {
+    z-index: 0;
+    font-size: clamp(14rem, 46vw, 40rem);
+    opacity: 0.7;
+  }
+
+  .hero__inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero__lab {
+    letter-spacing: 0.35em;
+  }
+
+  .hero__title {
+    margin-top: 1.25rem;
+    color: var(--accent);
+  }
+
+  .hero__positioning {
+    margin-top: 1.25rem;
+    font-size: clamp(0.85rem, 1.9vw, 1.15rem);
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+  }
+
+  .hero__statement {
+    margin-top: 2rem;
+    font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+    font-weight: 300;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    margin-top: 2.5rem;
+  }
+
+  .hero__nav-hint {
+    position: relative;
+    z-index: 1;
+    display: none;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: clamp(3rem, 8vh, 5rem);
+    color: var(--label);
+  }
+
+  .hero__nav-hint a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    transition: color var(--t-base) ease;
+  }
+
+  .hero__nav-hint a:hover,
+  .hero__nav-hint a:focus-visible {
+    color: var(--accent);
+  }
+
+  @media (min-width: 56rem) {
+    .hero__nav-hint {
+      display: flex;
+    }
+  }
+
+  .work-list {
+    position: relative;
+    z-index: 1;
+  }
+
+  .work-more {
+    margin-top: 2rem;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .topic-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.75rem;
+    list-style: none;
+    position: relative;
+    z-index: 1;
+  }
+
+  .topic-list li {
+    position: relative;
+    font-family: var(--font-display);
+    font-size: clamp(0.95rem, 2vw, 1.2rem);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .topic-list li::before {
+    content: '//';
+    margin-right: 0.5rem;
+    color: var(--label);
+  }
+
+  .contact-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    margin-top: 2rem;
+  }
+</style>

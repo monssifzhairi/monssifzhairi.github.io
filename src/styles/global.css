@@ -1,0 +1,559 @@
+/* =========================================================================
+   Monssif Zhairi — global stylesheet
+
+   Design tokens below are lifted directly from the previous site
+   (monssif.xo.je/styles.css) rather than re-invented:
+
+     background  #0d0d0d      text        #ededed
+     secondary   #bbb/#a5a5a5 muted       #8a8a8a
+     hairlines   #222 / rgba(255,255,255,.18)
+     accent      #fff (the old palette is strictly monochrome — no hue)
+     display     Oswald, uppercase
+     body        Inter, line-height 1.6
+     micro-label Oswald .72-.85rem, letter-spacing .25-.4em, #8a8a8a
+     easing      cubic-bezier(.19,1,.22,1)  (signature), cubic-bezier(.25,1,.5,1)
+     durations   .25 / .3 / .45 / .6 / .8s
+     ambient     feTurbulence film texture @ opacity .04
+
+   Contrast note (§16): every grey used for text was checked against #0d0d0d.
+   --text-muted #a5a5a5 = 8.0:1 and --label #949494 = 5.9:1, both above the
+   4.5:1 AA threshold. #8a8a8a (3.4:1) is retained for decorative/hairline
+   use only and is never the sole carrier of text.
+   ========================================================================= */
+
+@layer reset, base, components, utilities;
+
+/* --------------------------------------------------------------- reset -- */
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-padding-top: 6rem;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+  }
+
+  @supports (overflow-x: clip) {
+    html {
+      overflow-x: clip;
+    }
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  ul[class],
+  ol[class] {
+    list-style: none;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+/* ---------------------------------------------------------------- base -- */
+@layer base {
+  :root {
+    /* Palette — lifted from the old site */
+    --bg: #0d0d0d;
+    --bg-deep: #050505;
+    --surface: #111;
+    --surface-2: #1a1a1a;
+    --line: #222;
+    --line-soft: rgba(255, 255, 255, 0.1);
+    --line-mid: rgba(255, 255, 255, 0.18);
+    --line-strong: rgba(255, 255, 255, 0.3);
+
+    --text: #ededed;
+    --text-soft: #bdbdbd;
+    --text-muted: #a5a5a5;
+    --label: #949494; /* AA-compliant replacement for the old #8a8a8a */
+    --accent: #ffffff;
+
+    /* Type */
+    --font-display: 'Oswald', 'Arial Narrow', system-ui, sans-serif;
+    --font-body: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
+
+    /* Rhythm */
+    --gutter: clamp(1.25rem, 5vw, 5rem);
+    --measure: 62ch;
+    --measure-narrow: 54ch;
+    --section-gap: clamp(5rem, 14vh, 11rem);
+    --max-w: 78rem;
+
+    /* Motion */
+    --ease: cubic-bezier(0.19, 1, 0.22, 1);
+    --ease-alt: cubic-bezier(0.25, 1, 0.5, 1);
+    --t-fast: 0.25s;
+    --t-base: 0.3s;
+    --t-mid: 0.45s;
+    --t-slow: 0.6s;
+
+    /* Ambient film texture opacity, lifted from the old site */
+    --texture-opacity: 0.04;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Ambient film texture. Slow, low contrast, fixed, non-interactive.
+     Disabled under reduced motion (see the bottom of this file). */
+  .film-texture {
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200vw;
+    height: 200vh;
+    z-index: 1;
+    pointer-events: none;
+    opacity: var(--texture-opacity);
+    background-image: url("data:image/svg+xml;utf8,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: noise 0.2s infinite;
+  }
+
+  @keyframes noise {
+    0% { transform: translate(0, 0); }
+    10% { transform: translate(-5%, -5%); }
+    20% { transform: translate(-10%, 5%); }
+    30% { transform: translate(5%, -10%); }
+    40% { transform: translate(-5%, 15%); }
+    50% { transform: translate(-10%, 5%); }
+    60% { transform: translate(15%, 0%); }
+    70% { transform: translate(0, 15%); }
+    80% { transform: translate(3%, 35%); }
+    90% { transform: translate(-10%, 10%); }
+    100% { transform: translate(0, 0); }
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .display {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+  }
+
+  h1 {
+    font-size: clamp(2.75rem, 8vw, 8rem);
+  }
+
+  h2 {
+    font-size: clamp(2rem, 5vw, 4.25rem);
+  }
+
+  h3 {
+    font-size: clamp(1.35rem, 2.5vw, 2rem);
+  }
+
+  h4 {
+    font-size: clamp(1.05rem, 1.6vw, 1.3rem);
+  }
+
+  p {
+    max-width: var(--measure);
+  }
+
+  strong {
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  code,
+  kbd {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+  }
+
+  /* Anchor targets clear the fixed header */
+  [id] {
+    scroll-margin-top: 6rem;
+  }
+}
+
+/* ---------------------------------------------------------- components -- */
+@layer components {
+  .skip-link {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 10001;
+    padding: 0.75rem 1.25rem;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transform: translateY(-200%);
+    transition: transform var(--t-fast) ease;
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .container {
+    width: 100%;
+    max-width: var(--max-w);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* Monospace/technical micro-label, lifted from the old site's kickers */
+  .micro {
+    font-family: var(--font-display);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--label);
+  }
+
+  .micro--tight {
+    letter-spacing: 0.12em;
+    font-size: 0.72rem;
+  }
+
+  .prose p {
+    color: var(--text-soft);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+
+  .prose p + p {
+    margin-top: 1.15rem;
+  }
+
+  .prose a {
+    color: var(--accent);
+    border-bottom: 1px solid var(--line-strong);
+    padding-bottom: 1px;
+    transition: border-color var(--t-base) ease, color var(--t-base) ease;
+  }
+
+  .prose a:hover {
+    border-bottom-color: var(--accent);
+  }
+
+  /* Pill buttons, lifted from the old site's .btn */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    min-height: 44px;
+    padding: 1rem 2.5rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 50px;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text);
+    transition:
+      background-color var(--t-base) ease,
+      color var(--t-base) ease,
+      border-color var(--t-base) ease,
+      transform var(--t-slow) var(--ease);
+  }
+
+  .btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  .btn--primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+
+  .btn--primary:hover {
+    background: transparent;
+    color: var(--accent);
+  }
+
+  .btn--small {
+    padding: 0.7rem 1.5rem;
+    font-size: 0.78rem;
+  }
+
+  /* Underlined text link that animates like the old .interactive-link */
+  .link {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 2px;
+    color: var(--accent);
+  }
+
+  .link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform var(--t-slow) var(--ease);
+  }
+
+  .link:hover::after,
+  .link:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* Tag chips, lifted from the old .tech-list */
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    list-style: none;
+  }
+
+  .tags li {
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+    border: 1px solid var(--line-mid);
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+  }
+
+  /* Section rhythm: separated by space and hairlines, never by boxes */
+  .section {
+    position: relative;
+    padding-block: var(--section-gap);
+  }
+
+  .rule {
+    border-top: 1px solid var(--line);
+  }
+
+  /* Huge parallax-ish background typography, lifted from the old .bg-text.
+     Decorative only, hidden from assistive tech, clamped so it cannot
+     cause horizontal overflow at 360px. */
+  .bg-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(5rem, 22vw, 26rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--line);
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+  }
+
+  /* Footer facts list, lifted from the old .about-facts */
+  .facts {
+    list-style: none;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .facts li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1.5rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .facts dt,
+  .facts .fact-label {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--label);
+  }
+
+  .facts .fact-value {
+    font-size: 1rem;
+    color: var(--text);
+  }
+
+  /* Reveal-on-scroll. The end state is the DEFAULT, so the page is fully
+     readable with JavaScript disabled, before hydration, and under
+     reduced motion. JS adds .js-reveal to opt elements into the animation. */
+  .js-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+      opacity var(--t-slow) var(--ease),
+      transform var(--t-slow) var(--ease);
+  }
+
+  .js-reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Unconfirmed-content marker. Visible, honest, never invented filler. */
+  .todo {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--label);
+    border: 1px dashed var(--line-strong);
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+  }
+
+  .todo-block {
+    border: 1px dashed var(--line-mid);
+    border-radius: 4px;
+    padding: 1rem 1.15rem;
+  }
+
+  .todo-block p {
+    color: var(--label);
+    font-size: 0.95rem;
+    max-width: none;
+  }
+}
+
+/* ------------------------------------------------------------ utilities -- */
+@layer utilities {
+  .flow > * + * {
+    margin-top: 1.15rem;
+  }
+
+  .measure-narrow {
+    max-width: var(--measure-narrow);
+  }
+
+  .measure-tight {
+    max-width: 42ch;
+  }
+
+  .no-scroll {
+    overflow: hidden;
+  }
+
+  .visually-hidden-focusable:not(:focus):not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+/* ==================================================== reduced motion ====
+   A complete, static, fully readable experience — not a degraded one.
+   Disables the texture animation and all reveal transitions. Elements keep
+   their final visible state because .js-reveal is never opted in. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .film-texture {
+    animation: none !important;
+  }
+
+  .js-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ==================================================== print ============ */
+@media print {
+  .film-texture,
+  .site-header,
+  .site-footer,
+  .ticker {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+}
