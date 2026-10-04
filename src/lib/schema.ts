@@ -31,8 +31,14 @@ function person() {
     alternateName: SITE.alternateNames,
     url: absolute('/'),
     description: PERSON_DESCRIPTION,
-    // Real GitHub profile only.
-    sameAs: [SITE.github],
+    // Public profiles controlled by Monssif Zhairi.
+    sameAs: [
+      SITE.github,
+      'https://www.linkedin.com/in/monssif-z-80a744414/',
+      'https://dev.to/monssifzhairi',
+      'https://hashnode.com/@monssifzhairi',
+      'https://codepen.io/monssifzhairi',
+    ],
     knowsAbout: [...KNOWS_ABOUT],
   };
 }
@@ -131,7 +137,7 @@ export function buildGraph(input: GraphInput = {}) {
 }
 
 export function serializeGraph(input: GraphInput = {}): string {
-  // Escaping `<` prevents a "</script>" sequence inside a string from
+  // Escaping '<' prevents a "</script>" sequence inside a string from
   // terminating the script element early.
   return JSON.stringify(buildGraph(input)).replace(/</g, '\\u003c');
 }
